@@ -3,45 +3,40 @@ include 'security.php';
 include 'check_integrity.php';
 include 'koneksi.php';
 
-// Tiket IT Hardware
-$jumlah_hardware     = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tiket_it_hardware"));
-$hardware_menunggu   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tiket_it_hardware WHERE status = 'Menunggu'"));
-$hardware_diproses   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tiket_it_hardware WHERE status = 'Diproses'"));
-$hardware_selesai    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tiket_it_hardware WHERE status = 'Selesai'"));
+// Pastikan session sudah aktif
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Tiket IT Software
-$jumlah_software     = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tiket_it_software"));
-$software_menunggu   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tiket_it_software WHERE status = 'Menunggu'"));
-$software_diproses   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tiket_it_software WHERE status = 'Diproses'"));
-$software_selesai    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tiket_it_software WHERE status = 'Selesai'"));
+// Ambil ID dan nama karyawan dari session
+$karyawan_id = $_SESSION['user_id'] ?? 0;
+$nama_user   = $_SESSION['nama'] ?? 'Pengguna';
 
-// Laporan Off Duty
-$laporan_total       = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM laporan_off_duty"));
-$laporan_menunggu    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM laporan_off_duty WHERE status_validasi = 'Menunggu'"));
-$laporan_diproses    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM laporan_off_duty WHERE status_validasi = 'Diproses'"));
-$laporan_selesai     = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM laporan_off_duty WHERE status_validasi = 'Selesai'"));
+// Tahun berjalan
+$tahun = date('Y');
 
-// Agenda Direktur
-$agenda_total = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM agenda_direktur"));
+// Ambil data cuti per kategori
+$sql = "SELECT mc.nama_cuti, mc.id as cuti_id, jc.lama_hari, jc.sisa_hari,
+               (jc.lama_hari - jc.sisa_hari) AS terpakai
+        FROM jatah_cuti jc
+        JOIN master_cuti mc ON jc.cuti_id = mc.id
+        WHERE jc.karyawan_id = ? AND jc.tahun = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("ii", $karyawan_id, $tahun);
+$stmt->execute();
+$result = $stmt->get_result();
 
-// Arsip Digital
-$arsip_total = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM arsip_digital"));
-
-// Berita Acara Hardware
-$ba_total = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM berita_acara"));
-
-// Berita Acara Software
-$ba_software_total = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM berita_acara_software"));
-
-// Data Barang IT
-$barang_it_total = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM data_barang_it"));
+// Simpan ke array
+$dataCuti = [];
+while($row = $result->fetch_assoc()){
+  $dataCuti[] = $row;
+}
 ?>
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <title>Dashboard</title>
 
   <!-- CSS -->
@@ -50,125 +45,101 @@ $barang_it_total = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as to
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/components.css">
   <style>
-    .card-statistic-1 { padding: 5px; margin-bottom: 5px; font-size: 13px; }
+    .card-statistic-1 { padding: 5px; margin-bottom: 5px; font-size: 13px; cursor: pointer; }
     .card-statistic-1 .card-icon { font-size: 14px; padding: 4px; width: 30px; height: 30px; }
     .card-statistic-1 .card-header h4 { font-size: 11px; margin-bottom: 2px; }
     .card-statistic-1 .card-body { font-size: 14px; font-weight: bold; }
     .card-statistic-1 .card-wrap { padding-left: 8px; }
     .row > [class*='col-'] { padding-right: 5px; padding-left: 5px; margin-bottom: 5px; }
+    .icon-cuti { color: #17a2b8; margin-right: 5px; }
   </style>
 </head>
-
 <body>
-  <div id="app">
-    <div class="main-wrapper main-wrapper-1">
+<div id="app">
+  <div class="main-wrapper main-wrapper-1">
 
-      <?php include 'navbar.php'; ?>
-      <?php if (isset($_SESSION['notif'])): ?>
-  <div class="container mt-3">
-    <div class="alert alert-<?= $_SESSION['notif']['type']; ?> alert-dismissible fade show" role="alert">
-      <i class="fas <?= $_SESSION['notif']['type'] == 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'; ?>"></i>
-      <?= htmlspecialchars($_SESSION['notif']['msg']); ?>
-      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span>
-      </button>
+    <?php include 'navbar.php'; ?>
+    <?php include 'sidebar.php'; ?>
+
+    <div class="main-content">
+      <section class="section">
+        <div class="section-header">
+          <h1>Dashboard</h1>
+        </div>
+
+        <div class="row">
+          <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+            <!-- Card HRD/SDM -->
+            <div class="card card-statistic-1" data-toggle="modal" data-target="#modalHRD">
+              <div class="card-icon bg-info"><i class="fas fa-users-cog"></i></div>
+              <div class="card-wrap">
+                <div class="card-header"><h4>HRD / SDM</h4></div>
+                <div class="card-body">Info Cuti</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
     </div>
+
   </div>
-  <?php unset($_SESSION['notif']); ?>
-<?php endif; ?>
+</div>
 
-      <?php include 'sidebar.php'; ?>
-
-      <div class="main-content">
-        <section class="section">
-          <div class="section-header">
-            <h1>Dashboard</h1>
-          </div>
-
-          <!-- Row Gabungan: Hardware & Software -->
-          <h5 class="mb-2">Tiket IT</h5>
-          <div class="row">
-            <?php
-            $it_cards = [
-            ['Hardware Total', 'primary', 'fas fa-microchip', $jumlah_hardware['total']],
-
-              ['Hardware Menunggu', 'warning', 'fas fa-hourglass-start', $hardware_menunggu['total']],
-              ['Hardware Diproses', 'info', 'fas fa-spinner', $hardware_diproses['total']],
-              ['Hardware Selesai', 'success', 'fas fa-check-circle', $hardware_selesai['total']],
-              ['Software Total', 'primary', 'fas fa-laptop-code', $jumlah_software['total']],
-              ['Software Menunggu', 'warning', 'fas fa-hourglass-start', $software_menunggu['total']],
-              ['Software Diproses', 'info', 'fas fa-spinner', $software_diproses['total']],
-              ['Software Selesai', 'success', 'fas fa-check-circle', $software_selesai['total']],
-            ];
-            foreach($it_cards as $card): ?>
-            <div class="col-lg-3 col-md-4 col-sm-6">
-              <div class="card card-statistic-1">
-                <div class="card-icon bg-<?= $card[1]; ?>"><i class="<?= $card[2]; ?>"></i></div>
-                <div class="card-wrap">
-                  <div class="card-header"><h4><?= $card[0]; ?></h4></div>
-                  <div class="card-body"><?= $card[3]; ?></div>
-                </div>
-              </div>
-            </div>
-            <?php endforeach; ?>
-          </div>
-
-          <div class="row">
-            <?php
-            $other_cards = [
-              ['Off Duty Total', 'dark', 'fas fa-user-clock', $laporan_total['total']],
-              ['Off Duty Menunggu', 'warning', 'fas fa-hourglass-start', $laporan_menunggu['total']],
-              ['Off Duty Diproses', 'info', 'fas fa-spinner', $laporan_diproses['total']],
-              ['Off Duty Selesai', 'success', 'fas fa-check-double', $laporan_selesai['total']],
-              ['Agenda Direktur', 'secondary', 'fas fa-calendar-alt', $agenda_total['total']],
-              ['Arsip Digital', 'success', 'fas fa-folder-open', $arsip_total['total']],
-              ['Berita Acara Hardware', 'primary', 'fas fa-file-alt', $ba_total['total']],
-              ['Berita Acara Software', 'info', 'fas fa-file-alt', $ba_software_total['total']],
-              ['Data Barang IT', 'warning', 'fas fa-box', $barang_it_total['total']],
-            ];
-            foreach($other_cards as $card): ?>
-            <div class="col-lg-3 col-md-4 col-sm-6">
-              <div class="card card-statistic-1">
-                <div class="card-icon bg-<?= $card[1]; ?>"><i class="<?= $card[2]; ?>"></i></div>
-                <div class="card-wrap">
-                  <div class="card-header"><h4><?= $card[0]; ?></h4></div>
-                  <div class="card-body"><?= $card[3]; ?></div>
-                </div>
-              </div>
-            </div>
-            <?php endforeach; ?>
-          </div>
-
-        </section>
+<!-- Modal HRD -->
+<div class="modal fade" id="modalHRD" tabindex="-1" role="dialog" aria-labelledby="modalHRDLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="modalHRDLabel">
+          <i class="fas fa-users-cog"></i> Informasi Cuti <?= $tahun; ?> - <?= htmlspecialchars($nama_user); ?>
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Tutup">
+          <span aria-hidden="true">&times;</span>
+        </button>
       </div>
-
+      <div class="modal-body">
+        <table class="table table-bordered table-sm">
+          <thead class="thead-light">
+            <tr>
+              <th><i class="fas fa-list icon-cuti"></i> Jenis Cuti</th>
+              <th><i class="fas fa-calendar-plus icon-cuti"></i> Jatah</th>
+              <th><i class="fas fa-calendar-check icon-cuti"></i> Terpakai</th>
+              <th><i class="fas fa-calendar-minus icon-cuti"></i> Sisa</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if (!empty($dataCuti)): ?>
+              <?php foreach($dataCuti as $cuti): ?>
+              <tr>
+                <td><?= htmlspecialchars($cuti['nama_cuti']); ?></td>
+                <td><?= $cuti['lama_hari']; ?> Hari</td>
+                <td><?= $cuti['terpakai']; ?> Hari</td>
+                <td><?= $cuti['sisa_hari']; ?> Hari</td>
+              </tr>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <tr><td colspan="4" class="text-center">Belum ada data cuti</td></tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
+      </div>
     </div>
   </div>
+</div>
 
-  <!-- JS Scripts -->
-  <script src="assets/modules/jquery.min.js"></script>
-  <script src="assets/modules/popper.js"></script>
-  <script src="assets/modules/bootstrap/js/bootstrap.min.js"></script>
-  <script src="assets/modules/nicescroll/jquery.nicescroll.min.js"></script>
-  <script src="assets/modules/moment.min.js"></script>
-  <script src="assets/js/stisla.js"></script>
-  <script src="assets/js/scripts.js"></script>
-  <script src="assets/js/custom.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<?php if (isset($_SESSION['notif'])): ?>
-<script>
-Swal.fire({
-  icon: '<?= $_SESSION['notif']['type']; ?>',
-  title: '<?= $_SESSION['notif']['msg']; ?>',
-  showConfirmButton: false,
-  timer: 2000,
-  timerProgressBar: true,
-  position: 'center'
-});
-</script>
-<?php unset($_SESSION['notif']); endif; ?>
-
-
+<!-- JS Scripts -->
+<script src="assets/modules/jquery.min.js"></script>
+<script src="assets/modules/popper.js"></script>
+<script src="assets/modules/bootstrap/js/bootstrap.min.js"></script>
+<script src="assets/modules/nicescroll/jquery.nicescroll.min.js"></script>
+<script src="assets/modules/moment.min.js"></script>
+<script src="assets/js/stisla.js"></script>
+<script src="assets/js/scripts.js"></script>
+<script src="assets/js/custom.js"></script>
 
 </body>
 </html>

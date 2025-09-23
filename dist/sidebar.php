@@ -609,8 +609,32 @@ while ($row = mysqli_fetch_assoc($result)) {
 
     <?php if (in_array('data_cuti.php', $allowed_files)): ?>
     <li>
-      <a class="nav-link" href="#.php">
+      <a class="nav-link" href="data_cuti.php">
         <i class="fas fa-database"></i> <span>Data Cuti</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+     <?php if (in_array('data_cuti_delegasi.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_cuti_delegasi.php">
+        <i class="fas fa-database"></i> <span>Acc Cuti Delegasi</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+       <?php if (in_array('data_cuti_atasan.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_cuti_atasan.php">
+        <i class="fas fa-database"></i> <span>Acc Cuti Atasan</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+          <?php if (in_array('data_cuti_hrd.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_cuti_hrd.php">
+        <i class="fas fa-database"></i> <span>Acc Cuti HRD</span>
       </a>
     </li>
     <?php endif; ?>

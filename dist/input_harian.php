@@ -5,6 +5,7 @@ include 'koneksi.php';
 date_default_timezone_set('Asia/Jakarta');
 
 $user_id   = $_SESSION['user_id'] ?? 0;
+
 // ambil nama user login dari tabel users
 $nama_user = '';
 if ($user_id > 0) {
@@ -15,7 +16,7 @@ if ($user_id > 0) {
 }
 
 $activeTab = $_GET['tab'] ?? 'data';
-
+$filterJenis = $_GET['filter_jenis'] ?? ''; // filter jenis indikator
 
 // akses menu
 $current_file = basename(__FILE__);
@@ -37,7 +38,7 @@ if (isset($_POST['simpan'])) {
     $numerator  = intval($_POST['numerator']);
     $denominator= intval($_POST['denominator']);
     $ket        = mysqli_real_escape_string($conn, $_POST['keterangan']);
-    $petugas    = mysqli_real_escape_string($conn, $nama_user); // dari login
+    $petugas    = mysqli_real_escape_string($conn, $nama_user);
 
     if ($jenis && $id_indikator && $tanggal && $denominator > 0) {
         $q = "INSERT INTO indikator_harian 
@@ -47,11 +48,11 @@ if (isset($_POST['simpan'])) {
 
         if (mysqli_query($conn, $q)) {
             $_SESSION['flash_message'] = "Data berhasil disimpan.";
-            header("Location: input_harian.php"); // ⬅ redirect
+            header("Location: input_harian.php");
             exit;
         } else {
             $_SESSION['flash_message'] = "Gagal: " . mysqli_error($conn);
-            header("Location: input_harian.php?tab=input"); // ⬅ redirect ke tab input
+            header("Location: input_harian.php?tab=input");
             exit;
         }
     } else {
@@ -60,7 +61,6 @@ if (isset($_POST['simpan'])) {
         exit;
     }
 }
-
 
 // hapus data
 if (isset($_GET['hapus'])) {
@@ -93,34 +93,14 @@ while($row = mysqli_fetch_assoc($unit))     $indikators['unit'][] = $row;
   <link rel="stylesheet" href="assets/modules/fontawesome/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/components.css">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
     .dokumen-table { font-size: 13px; white-space: nowrap; }
     .dokumen-table th, .dokumen-table td { padding: 6px 10px; }
     .info-box { background:#f8f9fa; border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:6px; }
-    .flash-message {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2000;
-  background: rgba(40, 167, 69, 0.95); /* hijau transparan */
-  color: #fff;
-  padding: 20px 30px;
-  border-radius: 10px;
-  font-size: 16px;
-  text-align: center;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-  animation: fadeIn 0.5s;
-}
-.flash-content i {
-  margin-right: 8px;
-  font-size: 20px;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translate(-50%, -60%); }
-  to   { opacity: 1; transform: translate(-50%, -50%); }
-}
-
+    .flash-message { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; background: rgba(40, 167, 69, 0.95); color: #fff; padding: 20px 30px; border-radius: 10px; font-size: 16px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: fadeIn 0.5s; }
+    .flash-content i { margin-right: 8px; font-size: 20px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -60%); } to { opacity: 1; transform: translate(-50%, -50%); } }
   </style>
 </head>
 <body>
@@ -132,14 +112,14 @@ while($row = mysqli_fetch_assoc($unit))     $indikators['unit'][] = $row;
       <section class="section">
         <div class="section-body">
 
-       <?php if(isset($_SESSION['flash_message'])): ?>
-  <div id="flashMessage" class="flash-message">
-    <div class="flash-content">
-      <i class="fas fa-check-circle"></i> <?= $_SESSION['flash_message']; ?>
-    </div>
-  </div>
-  <?php unset($_SESSION['flash_message']); ?>
-<?php endif; ?>
+        <?php if(isset($_SESSION['flash_message'])): ?>
+          <div id="flashMessage" class="flash-message">
+            <div class="flash-content">
+              <i class="fas fa-check-circle"></i> <?= $_SESSION['flash_message']; ?>
+            </div>
+          </div>
+          <?php unset($_SESSION['flash_message']); ?>
+        <?php endif; ?>
 
         <div class="card">
           <div class="card-header"><h4>Input Harian Indikator</h4></div>
@@ -151,61 +131,69 @@ while($row = mysqli_fetch_assoc($unit))     $indikators['unit'][] = $row;
 
             <div class="tab-content mt-3">
               <!-- FORM INPUT -->
-           <!-- FORM INPUT -->
-<div class="tab-pane fade <?= ($activeTab=='input')?'show active':'' ?>" id="input">
-  <form method="POST">
-    <div class="row">
-      <!-- Kolom Kiri -->
-      <div class="col-md-6">
-        <div class="form-group">
-          <label><i class="fas fa-layer-group"></i> Jenis Indikator</label>
-          <select name="jenis_indikator" id="jenis_indikator" class="form-control" required>
-            <option value="">-- Pilih Jenis --</option>
-            <option value="nasional">Nasional</option>
-            <option value="rs">RS</option>
-            <option value="unit">Unit</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label><i class="fas fa-list"></i> Indikator</label>
-          <select name="id_indikator" id="id_indikator" class="form-control" required>
-            <option value="">-- Pilih Indikator --</option>
-          </select>
-        </div>
-        <div id="indikatorInfo" class="info-box" style="display:none;"></div>
-        <div class="form-group mt-3">
-          <label><i class="fas fa-calendar-alt"></i> Tanggal</label>
-          <input type="date" name="tanggal" class="form-control" value="<?= date('Y-m-d') ?>" required>
-        </div>
-      </div>
+              <div class="tab-pane fade <?= ($activeTab=='input')?'show active':'' ?>" id="input">
+                <form method="POST">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label><i class="fas fa-layer-group"></i> Jenis Indikator</label>
+                        <select name="jenis_indikator" id="jenis_indikator" class="form-control" required>
+                          <option value="">-- Pilih Jenis --</option>
+                          <option value="nasional">Nasional</option>
+                          <option value="rs">RS</option>
+                          <option value="unit">Unit</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label><i class="fas fa-list"></i> Indikator</label>
+                        <select name="id_indikator" id="id_indikator" class="form-control select2" required>
+                          <option value="">-- Pilih Indikator --</option>
+                        </select>
+                      </div>
+                      <div id="indikatorInfo" class="info-box" style="display:none;"></div>
+                      <div class="form-group mt-3">
+                        <label><i class="fas fa-calendar-alt"></i> Tanggal</label>
+                        <input type="date" name="tanggal" class="form-control" value="<?= date('Y-m-d') ?>" required>
+                      </div>
+                    </div>
 
-      <!-- Kolom Kanan -->
-      <div class="col-md-6">
-        <div class="form-group">
-          <label><i class="fas fa-sort-numeric-up"></i> Numerator</label>
-          <input type="number" name="numerator" class="form-control" required>
-        </div>
-        <div class="form-group">
-          <label><i class="fas fa-divide"></i> Denominator</label>
-          <input type="number" name="denominator" class="form-control" required>
-        </div>
-        <div class="form-group">
-          <label><i class="fas fa-comment-dots"></i> Keterangan</label>
-          <textarea name="keterangan" class="form-control"></textarea>
-        </div>
-        <div class="form-group text-right mt-4">
-          <button type="submit" name="simpan" class="btn btn-primary">
-            <i class="fas fa-save"></i> Simpan
-          </button>
-        </div>
-      </div>
-    </div>
-  </form>
-</div>
-
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label><i class="fas fa-sort-numeric-up"></i> Numerator</label>
+                        <input type="number" name="numerator" class="form-control" required>
+                      </div>
+                      <div class="form-group">
+                        <label><i class="fas fa-divide"></i> Denominator</label>
+                        <input type="number" name="denominator" class="form-control" required>
+                      </div>
+                      <div class="form-group">
+                        <label><i class="fas fa-comment-dots"></i> Keterangan</label>
+                        <textarea name="keterangan" class="form-control"></textarea>
+                      </div>
+                      <div class="form-group text-right mt-4">
+                        <button type="submit" name="simpan" class="btn btn-primary">
+                          <i class="fas fa-save"></i> Simpan
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
 
               <!-- DATA -->
               <div class="tab-pane fade <?= ($activeTab=='data')?'show active':'' ?>" id="data">
+                <div class="mb-3">
+                  <form method="GET" class="form-inline">
+                    <input type="hidden" name="tab" value="data">
+                    <label class="mr-2">Filter Jenis:</label>
+                    <select name="filter_jenis" class="form-control mr-2" onchange="this.form.submit()">
+                      <option value="">-- Semua --</option>
+                      <option value="nasional" <?= ($filterJenis=='nasional')?'selected':'' ?>>Nasional</option>
+                      <option value="rs" <?= ($filterJenis=='rs')?'selected':'' ?>>RS</option>
+                      <option value="unit" <?= ($filterJenis=='unit')?'selected':'' ?>>Unit</option>
+                    </select>
+                  </form>
+                </div>
                 <div class="table-responsive">
                   <table class="table table-bordered table-striped dokumen-table">
                     <thead class="thead-light">
@@ -223,16 +211,19 @@ while($row = mysqli_fetch_assoc($unit))     $indikators['unit'][] = $row;
                     </thead>
                     <tbody>
                     <?php
-                    $q = mysqli_query($conn, "
-                      SELECT h.*, 
-                        CASE h.jenis_indikator 
-                          WHEN 'nasional' THEN (SELECT nama_indikator FROM indikator_nasional WHERE id_nasional=h.id_indikator) 
-                          WHEN 'rs' THEN (SELECT nama_indikator FROM indikator_rs WHERE id_rs=h.id_indikator) 
-                          WHEN 'unit' THEN (SELECT nama_indikator FROM indikator_unit WHERE id_unit=h.id_indikator) 
-                        END AS nama_indikator
-                      FROM indikator_harian h 
-                      ORDER BY h.tanggal DESC, h.id_harian DESC
-                    ");
+                    $qStr = "SELECT h.*, 
+                              CASE h.jenis_indikator 
+                                WHEN 'nasional' THEN (SELECT nama_indikator FROM indikator_nasional WHERE id_nasional=h.id_indikator) 
+                                WHEN 'rs' THEN (SELECT nama_indikator FROM indikator_rs WHERE id_rs=h.id_indikator) 
+                                WHEN 'unit' THEN (SELECT nama_indikator FROM indikator_unit WHERE id_unit=h.id_indikator) 
+                              END AS nama_indikator
+                              FROM indikator_harian h";
+
+                    if($filterJenis) $qStr .= " WHERE h.jenis_indikator='".mysqli_real_escape_string($conn,$filterJenis)."'";
+
+                    $qStr .= " ORDER BY h.tanggal DESC, h.id_harian DESC";
+
+                    $q = mysqli_query($conn, $qStr);
                     $no=1;
                     while($row = mysqli_fetch_assoc($q)): 
                       $persen = ($row['denominator'] > 0) ? ($row['numerator']/$row['denominator']*100) : 0;
@@ -254,9 +245,6 @@ while($row = mysqli_fetch_assoc($unit))     $indikators['unit'][] = $row;
                 </div>
               </div>
 
-
-
-
             </div>
           </div>
         </div>
@@ -275,40 +263,35 @@ while($row = mysqli_fetch_assoc($unit))     $indikators['unit'][] = $row;
 <script src="assets/js/stisla.js"></script>
 <script src="assets/js/scripts.js"></script>
 <script src="assets/js/custom.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
-  $(document).ready(function(){
-    setTimeout(function(){
-      $("#flashMessage").fadeOut("slow");
-    }, 3000); // auto hilang setelah 3 detik
-  });
-</script>
-
-<script>
+$(document).ready(function(){
+  setTimeout(function(){ $("#flashMessage").fadeOut("slow"); }, 3000);
+  $('.select2').select2({placeholder: "-- Pilih Indikator --", allowClear: true, width: '100%'});
   var indikatorData = <?= json_encode($indikators) ?>;
 
   $("#jenis_indikator").change(function(){
     var jenis = $(this).val();
     var $idInd = $("#id_indikator");
-    $idInd.empty().append('<option value="">-- Pilih Indikator --</option>');
+    $idInd.empty().append('<option value=""></option>');
     if(indikatorData[jenis]){
       indikatorData[jenis].forEach(function(opt){
         var text = (opt.nama_unit? opt.nama_unit+' - ':'')+opt.nama_indikator;
         $idInd.append('<option data-standar="'+opt.standar+'" value="'+opt.id+'">'+text+'</option>');
       });
     }
+    $idInd.val(null).trigger('change');
     $("#indikatorInfo").hide();
   });
 
   $("#id_indikator").change(function(){
     var standar = $(this).find(':selected').data('standar') || '';
     var nama = $(this).find(':selected').text();
-    if(nama){
-      $("#indikatorInfo").html("<b>Indikator:</b> "+nama+"<br><b>Standar:</b> "+standar).show();
-    } else {
-      $("#indikatorInfo").hide();
-    }
+    if(nama){ $("#indikatorInfo").html("<b>Indikator:</b> "+nama+"<br><b>Standar:</b> "+standar).show(); }
+    else { $("#indikatorInfo").hide(); }
   });
+});
 </script>
 </body>
 </html>
