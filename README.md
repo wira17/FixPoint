@@ -140,6 +140,8 @@ FixPoint adalah sebuah aplikasi terpadu yang dirancang untuk membantu perusahaan
 - Menu Profil (update mandiri data karyawan)
 - Menu HRD (data karyawan)
 - Menu HRD (exit Clearance)
+- Menu HRD pengajuan cuti
+- Indikator mutu, pencarian unit dan jenis
 
 # Lisensi FixPoint – Smart Office Management System
 
