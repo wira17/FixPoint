@@ -15,7 +15,6 @@ function tgl_indo($tanggal, $jam = false) {
     return "$tgl $bln $thn$waktu";
 }
 
-
 if (!isset($_GET['tiket_id'])) {
     die('ID tiket tidak ditemukan.');
 }
@@ -23,15 +22,30 @@ if (!isset($_GET['tiket_id'])) {
 $tiket_id = intval($_GET['tiket_id']);
 
 // Ambil data berita acara + tiket + user
-$q = mysqli_query($conn, "SELECT ba.nomor_ba, ba.teknisi AS teknisi_nama, ba.catatan_teknisi, ba.tanggal_ba,
-                                 t.nomor_tiket, t.kendala, t.kategori, t.tanggal_input,
-                                 u.id AS user_id, u.nik, u.nama, u.jabatan, u.unit_kerja, u.atasan_id
-                          FROM berita_acara ba
-                          JOIN tiket_it_hardware t ON ba.tiket_id = t.id
-                          JOIN users u ON t.user_id = u.id
-                          WHERE t.id = '$tiket_id'");
+$q = mysqli_query($conn, "
+    SELECT 
+        ba.nomor_ba,
+        ba.teknisi,
+        ba.catatan_teknisi,
+        ba.tanggal_ba,
+        ba.nomor_tiket,
+        ba.kendala,
+        ba.kategori,
+        u.id AS user_id, 
+        u.nik AS user_nik, 
+        u.nama AS user_nama, 
+        u.jabatan AS user_jabatan, 
+        u.unit_kerja AS user_unit, 
+        u.atasan_id
+    FROM berita_acara ba
+    JOIN tiket_it_hardware t ON ba.tiket_id = t.id
+    JOIN users u ON t.user_id = u.id
+    WHERE t.id = '$tiket_id'
+");
 
-
+if (!$q) {
+    die('Query error: ' . mysqli_error($conn));
+}
 
 $data = mysqli_fetch_assoc($q);
 
@@ -43,33 +57,36 @@ if (!$data) {
 $q_perusahaan = mysqli_query($conn, "SELECT * FROM perusahaan LIMIT 1");
 $perusahaan = mysqli_fetch_assoc($q_perusahaan);
 
-// Path absolut logo (diubah ke base64 agar pasti tampil)
+// Path absolut logo (ubah ke base64 agar tampil di PDF)
 $logoPath = realpath('dist/images/logo/' . $perusahaan['logo']);
-
 $logoBase64 = '';
 
-if (file_exists($logoPath)) {
+if ($logoPath && file_exists($logoPath)) {
     $logoData = file_get_contents($logoPath);
     $logoType = pathinfo($logoPath, PATHINFO_EXTENSION);
     $logoBase64 = 'data:image/' . $logoType . ';base64,' . base64_encode($logoData);
-} else {
-    $logoBase64 = ''; // fallback jika logo tidak ditemukan
 }
 
+// Ambil data teknisi (berdasarkan nama di tabel berita_acara)
+$teknisi = ['nama' => $data['teknisi'], 'nik' => '-'];
+$q_teknisi = mysqli_query($conn, "SELECT nik FROM users WHERE nama = '" . mysqli_real_escape_string($conn, $data['teknisi']) . "' LIMIT 1");
+if ($q_teknisi && $row = mysqli_fetch_assoc($q_teknisi)) {
+    $teknisi['nik'] = $row['nik'];
+}
 
 // Ambil data atasan
-$atasan = ['nama' => '-', 'jabatan' => '-'];
+$atasan = ['nama' => '-', 'jabatan' => '-', 'nik' => '-'];
 if (!empty($data['atasan_id'])) {
-    $q_atasan = mysqli_query($conn, "SELECT nama, jabatan FROM users WHERE id = " . intval($data['atasan_id']));
-    $atasan = mysqli_fetch_assoc($q_atasan);
+    $q_atasan = mysqli_query($conn, "SELECT nama, jabatan, nik FROM users WHERE id = " . intval($data['atasan_id']));
+    if ($row = mysqli_fetch_assoc($q_atasan)) {
+        $atasan = $row;
+    }
 }
 
 $tgl_ba = tgl_indo($data['tanggal_ba']);
-$tgl_tiket = tgl_indo($data['tanggal_input'], true); // pakai jam
+$tgl_tiket = isset($data['tanggal_input']) ? tgl_indo($data['tanggal_input'], true) : '-';
 
-
-
-// HTML
+// HTML isi dokumen
 $html = '
 <style>
   body { font-family: Arial, sans-serif; font-size: 12px; color: #000; }
@@ -81,8 +98,7 @@ $html = '
   .nomor { text-align: center; margin-bottom: 20px; font-size: 12px; }
   .isi { text-align: justify; margin-top: 20px; }
   .info-table td { vertical-align: top; padding: 3px; }
-  .signature { margin-top: 50px; width: 100%; } 
-
+  .signature { margin-top: 50px; width: 100%; text-align: center; }
 </style>
 
 <div class="kop" style="text-align: center;">
@@ -99,8 +115,6 @@ $html = '
   Nomor BA: <strong>' . htmlspecialchars($data['nomor_ba']) . '</strong><br>
 </div>
 
-
-
 <div class="isi">
   Pada hari ini, tanggal <strong>' . $tgl_ba . '</strong>, bertempat di lingkungan kerja <strong>' . htmlspecialchars($perusahaan['nama_perusahaan']) . '</strong>, telah dilakukan penanganan atas kendala IT Hardware dengan rincian sebagai berikut:
 </div>
@@ -108,12 +122,11 @@ $html = '
 <table class="info-table" style="margin-top: 15px;">
   <tr><td width="150">Nomor Tiket</td><td>: '. htmlspecialchars($data['nomor_tiket']) . '</td></tr>
   <tr><td>Tanggal Tiket</td><td>: ' . $tgl_tiket . ' WIB</td></tr>
-  <tr><td>NIK / Nama</td><td>: ' . $data['nik'] . ' / ' . $data['nama'] . '</td></tr>
-  <tr><td>Jabatan</td><td>: ' . $data['jabatan'] . '</td></tr>
-  <tr><td>Unit Kerja</td><td>: ' . $data['unit_kerja'] . '</td></tr>
-  <tr><td>Kategori</td><td>: ' . $data['kategori'] . '</td></tr>
+  <tr><td>NIK / Nama</td><td>: ' . htmlspecialchars($data['user_nik']) . ' / ' . htmlspecialchars($data['user_nama']) . '</td></tr>
+  <tr><td>Jabatan</td><td>: ' . htmlspecialchars($data['user_jabatan']) . '</td></tr>
+  <tr><td>Unit Kerja</td><td>: ' . htmlspecialchars($data['user_unit']) . '</td></tr>
+  <tr><td>Kategori</td><td>: ' . htmlspecialchars($data['kategori']) . '</td></tr>
 </table>
-
 
 <div class="isi" style="margin-top: 15px;">
   <strong>Deskripsi Kendala:</strong><br>' . nl2br(htmlspecialchars($data['kendala'])) . '
@@ -133,39 +146,23 @@ $html = '
     <td style="width: 33%;">Yang Melapor</td>
     <td style="width: 33%;">Mengetahui,<br>Atasan Langsung</td>
   </tr>
+  <tr><td colspan="3" style="height: 60px;"></td></tr>
+
   <tr>
-    <td style="height: 1px;"></td>
-    <td></td>
-    <td></td>
-  </tr>
-
-
-<tr>
-  <td style="padding-top: 60px;">
-    <div style="text-align: center;">
-      <strong><u>' . htmlspecialchars($data['teknisi_nama']) . '</u></strong><br>
-      ' . htmlspecialchars($data['nik']) . '
-    </div>
-  </td>
-  <td style="padding-top: 60px;">
-    <div style="text-align: center;">
-      <strong><u>' . htmlspecialchars($data['nama']) . '</u></strong><br>
-      ' . htmlspecialchars($data['nik']) . '
-    </div>
-  </td>
-  <td style="padding-top: 60px;">
-    <div style="text-align: center;">
+    <td>
+      <strong><u>' . htmlspecialchars($teknisi['nama']) . '</u></strong><br>
+      ' . htmlspecialchars($teknisi['nik']) . '
+    </td>
+    <td>
+      <strong><u>' . htmlspecialchars($data['user_nama']) . '</u></strong><br>
+      ' . htmlspecialchars($data['user_nik']) . '
+    </td>
+    <td>
       <strong><u>' . htmlspecialchars($atasan['nama']) . '</u></strong><br>
-      ' . htmlspecialchars($data['nik']) . '<br>
-    </div>
-  </td>
-</tr>
-
-
-
-
+      ' . htmlspecialchars($atasan['nik']) . '
+    </td>
+  </tr>
 </table>
-
 ';
 
 // Inisialisasi Dompdf

@@ -16,7 +16,7 @@ if (mysqli_num_rows($result) == 0) {
   exit;
 }
 
-// Pencarian & Filter tanggal
+// Filter data
 $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
 $dari_tanggal = isset($_GET['dari_tanggal']) ? $_GET['dari_tanggal'] : '';
 $sampai_tanggal = isset($_GET['sampai_tanggal']) ? $_GET['sampai_tanggal'] : '';
@@ -26,41 +26,22 @@ if ($sampai_tanggal) $sampai_tanggal = date('Y-m-d', strtotime($sampai_tanggal))
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport" />
+  <meta charset="UTF-8">
+  <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
   <title>f.i.x.p.o.i.n.t</title>
 
-  <link rel="stylesheet" href="assets/modules/bootstrap/css/bootstrap.min.css" />
-  <link rel="stylesheet" href="assets/modules/fontawesome/css/all.min.css" />
-  <link rel="stylesheet" href="assets/css/style.css" />
-  <link rel="stylesheet" href="assets/css/components.css" />
+  <link rel="stylesheet" href="assets/modules/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/modules/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/components.css">
 
   <style>
-    #notif-toast {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 9999;
-      display: none;
-      min-width: 300px;
-    }
-
-    .table-responsive-custom {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .table-responsive-custom table {
-      min-width: 1500px;
-      white-space: nowrap;
-    }
+    .table-responsive-custom { width: 100%; overflow-x: auto; }
+    .table-responsive-custom table { min-width: 1500px; white-space: nowrap; }
   </style>
 </head>
-
 <body>
 <div id="app">
   <div class="main-wrapper main-wrapper-1">
@@ -71,12 +52,12 @@ if ($sampai_tanggal) $sampai_tanggal = date('Y-m-d', strtotime($sampai_tanggal))
       <section class="section">
         <div class="section-body">
           <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h4><i class="fas fa-clock me-2"></i> Data Handling Time Tiket</h4>
+            <div class="card-header">
+              <h4><i class="fas fa-clock"></i> Data Handling Time Tiket</h4>
             </div>
             <div class="card-body">
 
-              <!-- Tabs Menu -->
+              <!-- Tabs -->
               <ul class="nav nav-tabs mb-4">
                 <li class="nav-item">
                   <a class="nav-link active" href="handling_time.php">IT Hardware</a>
@@ -86,31 +67,31 @@ if ($sampai_tanggal) $sampai_tanggal = date('Y-m-d', strtotime($sampai_tanggal))
                 </li>
               </ul>
 
-              <!-- Form Filter -->
+              <!-- Filter -->
               <form method="GET" class="form-inline mb-3">
                 <div class="form-group mr-2">
-                  <label for="dari_tanggal" class="mr-2">Dari</label>
-                  <input type="date" name="dari_tanggal" id="dari_tanggal" 
-                         class="form-control" value="<?php echo isset($_GET['dari_tanggal']) ? $_GET['dari_tanggal'] : ''; ?>">
+                  <label class="mr-2">Dari</label>
+                  <input type="date" name="dari_tanggal" class="form-control" value="<?php echo $dari_tanggal; ?>">
                 </div>
                 <div class="form-group mr-2">
-                  <label for="sampai_tanggal" class="mr-2">Sampai</label>
-                  <input type="date" name="sampai_tanggal" id="sampai_tanggal" 
-                         class="form-control" value="<?php echo isset($_GET['sampai_tanggal']) ? $_GET['sampai_tanggal'] : ''; ?>">
+                  <label class="mr-2">Sampai</label>
+                  <input type="date" name="sampai_tanggal" class="form-control" value="<?php echo $sampai_tanggal; ?>">
                 </div>
                 <div class="form-group mr-2">
                   <input type="text" name="keyword" class="form-control" placeholder="Cari NIK / Nama / No Tiket"
                          value="<?php echo htmlspecialchars($keyword); ?>">
                 </div>
-                <button type="submit" class="btn btn-primary">Filter</button>
-                <a href="handling_time.php" class="btn btn-secondary ml-2">Reset</a>
+                <button type="submit" class="btn btn-primary btn-sm mr-2">Filter</button>
+                <a href="handling_time.php" class="btn btn-secondary btn-sm mr-2">Reset</a>
+                <a href="handling_time_hardware_pdf.php?dari_tanggal=<?php echo $dari_tanggal; ?>&sampai_tanggal=<?php echo $sampai_tanggal; ?>&keyword=<?php echo urlencode($keyword); ?>"
+                   target="_blank" class="btn btn-danger btn-sm"><i class="fas fa-file-pdf"></i> Cetak PDF</a>
               </form>
 
-              <!-- Table -->
+              <!-- Tabel -->
               <div class="table-responsive-custom">
                 <table class="table table-bordered table-sm table-hover">
-                  <thead class="thead-dark">
-                    <tr class="text-center">
+                  <thead class="thead-dark text-center">
+                    <tr>
                       <th>No</th>
                       <th>Nomor Tiket</th>
                       <th>NIK</th>
@@ -133,30 +114,23 @@ if ($sampai_tanggal) $sampai_tanggal = date('Y-m-d', strtotime($sampai_tanggal))
                   </thead>
                   <tbody>
                     <?php
-                    if (isset($_SESSION['flash_message'])) {
-                      echo "<div id='notif-toast' class='alert alert-info text-center'>{$_SESSION['flash_message']}</div>";
-                      unset($_SESSION['flash_message']);
-                    }
-
                     $no = 1;
                     $query = "SELECT * FROM tiket_it_hardware WHERE 1=1";
 
-                    // Filter keyword
                     if (!empty($keyword)) {
                       $kw = mysqli_real_escape_string($conn, $keyword);
                       $query .= " AND (nik LIKE '%$kw%' OR nama LIKE '%$kw%' OR nomor_tiket LIKE '%$kw%')";
                     }
-
-                    // Filter tanggal
                     if (!empty($dari_tanggal) && !empty($sampai_tanggal)) {
                       $query .= " AND DATE(tanggal_input) BETWEEN '$dari_tanggal' AND '$sampai_tanggal'";
                     }
 
                     $query .= " ORDER BY tanggal_input DESC";
-
                     $result = mysqli_query($conn, $query);
+
                     if (mysqli_num_rows($result) > 0) {
                       while ($row = mysqli_fetch_assoc($result)) {
+                        $kendala = htmlspecialchars($row['kendala']);
                         echo "<tr>";
                         echo "<td class='text-center'>{$no}</td>";
                         echo "<td>{$row['nomor_tiket']}</td>";
@@ -165,10 +139,14 @@ if ($sampai_tanggal) $sampai_tanggal = date('Y-m-d', strtotime($sampai_tanggal))
                         echo "<td>{$row['jabatan']}</td>";
                         echo "<td>{$row['unit_kerja']}</td>";
                         echo "<td>{$row['kategori']}</td>";
-                        echo "<td>{$row['kendala']}</td>";
 
-                        // Status
-                        echo "<td class='text-center'>";
+                        // Tombol Lihat
+                        echo "<td class='text-center'>
+                                <button type='button' class='btn btn-info btn-sm btn-lihat' data-kendala='{$kendala}' title='Lihat Kendala'>
+                                  <i class='fas fa-eye'></i>
+                                </button>
+                              </td>";
+
                         $status = $row['status'];
                         $badgeClass = match (strtolower($status)) {
                           'menunggu' => 'warning',
@@ -177,8 +155,7 @@ if ($sampai_tanggal) $sampai_tanggal = date('Y-m-d', strtotime($sampai_tanggal))
                           'tidak bisa diperbaiki' => 'danger',
                           default => 'secondary'
                         };
-                        echo "<span class='badge badge-{$badgeClass}'>{$status}</span>";
-                        echo "</td>";
+                        echo "<td class='text-center'><span class='badge badge-{$badgeClass}'>{$status}</span></td>";
 
                         echo "<td>{$row['teknisi_nama']}</td>";
                         echo "<td>" . formatTanggal($row['tanggal_input']) . "</td>";
@@ -213,10 +190,28 @@ if ($sampai_tanggal) $sampai_tanggal = date('Y-m-d', strtotime($sampai_tanggal))
                   </tbody>
                 </table>
               </div>
+
             </div>
           </div>
         </div>
       </section>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Kendala -->
+<div class="modal fade" id="modalKendala" tabindex="-1" role="dialog" aria-labelledby="modalKendalaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title"><i class="fas fa-eye"></i> Detail Kendala</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Tutup">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="isiKendala" class="mb-0"></p>
+      </div>
     </div>
   </div>
 </div>
@@ -231,12 +226,21 @@ if ($sampai_tanggal) $sampai_tanggal = date('Y-m-d', strtotime($sampai_tanggal))
 <script src="assets/js/custom.js"></script>
 
 <script>
-  $(document).ready(function () {
-    var toast = $('#notif-toast');
-    if (toast.length) {
-      toast.fadeIn(300).delay(2000).fadeOut(500);
-    }
+$(document).ready(function() {
+  // Klik tombol lihat
+  $(document).on('click', '.btn-lihat', function() {
+    let kendala = $(this).data('kendala');
+    $('#isiKendala').text(kendala || 'Tidak ada keterangan.');
+    $('#modalKendala').modal('show');
   });
+
+  // Pastikan modal bisa dibuka berulang kali
+  $('#modalKendala').on('hidden.bs.modal', function () {
+    $('body').removeClass('modal-open');
+    $('.modal-backdrop').remove();
+  });
+});
 </script>
+
 </body>
 </html>

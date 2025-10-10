@@ -17,6 +17,25 @@ if (mysqli_num_rows($result) == 0) {
   exit;
 }
 
+// === Pastikan kolom waktu ada (jika belum ada, coba buat otomatis) ===
+$timeCols = [
+  'acc_delegasi_time' => 'acc_delegasi_by',
+  'acc_atasan_time'   => 'acc_atasan_by',
+  'acc_hrd_time'      => 'acc_hrd_by'
+];
+
+foreach ($timeCols as $col => $after) {
+    $check = mysqli_query($conn, "SHOW COLUMNS FROM `pengajuan_cuti` LIKE '".mysqli_real_escape_string($conn,$col)."'");
+    if ($check && mysqli_num_rows($check) == 0) {
+        $alter = "ALTER TABLE `pengajuan_cuti` ADD COLUMN `{$col}` DATETIME NULL AFTER `{$after}`";
+        if (!mysqli_query($conn, $alter)) {
+            // jika gagal membuat kolom, hentikan dan tunjukkan instruksi manual
+            die("Gagal membuat kolom {$col}: " . mysqli_error($conn) . 
+                ".\nSilakan tambahkan secara manual menjalankan SQL berikut di database:\n\n{$alter}\n");
+        }
+    }
+}
+
 // === Proses ACC / Tolak HRD ===
 if (isset($_GET['aksi'], $_GET['id'])) {
   $id   = intval($_GET['id']);
@@ -46,7 +65,9 @@ if (isset($_GET['aksi'], $_GET['id'])) {
       // cek jatah cuti
       $cek = mysqli_query($conn, "
         SELECT * FROM jatah_cuti 
-        WHERE karyawan_id='$karyawan_id' AND cuti_id='$cuti_id' AND tahun='$tahun'
+        WHERE karyawan_id='".mysqli_real_escape_string($conn,$karyawan_id)."' 
+          AND cuti_id='".mysqli_real_escape_string($conn,$cuti_id)."' 
+          AND tahun='".mysqli_real_escape_string($conn,$tahun)."'
         LIMIT 1
       ") or die("Error cek jatah: " . mysqli_error($conn));
       $jatah = mysqli_fetch_assoc($cek);
@@ -55,8 +76,8 @@ if (isset($_GET['aksi'], $_GET['id'])) {
         if ($jatah['sisa_hari'] >= $lama_hari) {
           $newSisa = $jatah['sisa_hari'] - $lama_hari;
           mysqli_query($conn, "UPDATE jatah_cuti 
-                               SET sisa_hari='$newSisa' 
-                               WHERE id='{$jatah['id']}'") 
+                               SET sisa_hari='".mysqli_real_escape_string($conn,$newSisa)."' 
+                               WHERE id='".mysqli_real_escape_string($conn,$jatah['id'])."'") 
                                or die("Error update jatah: " . mysqli_error($conn));
           $_SESSION['flash_message'] = "✅ Cuti disetujui HRD oleh <b>$acc_by</b>. Sisa cuti sekarang <b>$newSisa hari</b>.";
         } else {
@@ -79,8 +100,9 @@ if (isset($_GET['aksi'], $_GET['id'])) {
     $sql = "UPDATE pengajuan_cuti 
             SET status='" . mysqli_real_escape_string($conn, $status) . "',
                 status_hrd='" . mysqli_real_escape_string($conn, $status_hrd) . "',
-                acc_hrd_by='" . mysqli_real_escape_string($conn, $acc_by) . "'
-            WHERE id='$id'";
+                acc_hrd_by='" . mysqli_real_escape_string($conn, $acc_by) . "',
+                acc_hrd_time=NOW()
+            WHERE id='".mysqli_real_escape_string($conn,$id)."'";
     $update = mysqli_query($conn, $sql);
 
     if (!$update) {
@@ -99,7 +121,7 @@ if (isset($_GET['aksi'], $_GET['id'])) {
 // === Ambil data pengajuan cuti ===
 $sqlPengajuan = "
   SELECT p.*, u.nama AS nama_karyawan, mc.nama_cuti, d.nama AS nama_delegasi,
-         p.acc_hrd_by,
+         p.acc_hrd_by, p.acc_hrd_time,
          GROUP_CONCAT(DATE_FORMAT(pc.tanggal,'%d-%m-%Y') ORDER BY pc.tanggal SEPARATOR ', ') AS tanggal_cuti
   FROM pengajuan_cuti p
   JOIN users u ON p.karyawan_id = u.id
@@ -167,6 +189,7 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
                       <th>Alasan</th>
                       <th>Status</th>
                       <th>Disetujui HRD Oleh</th>
+                      <th>Waktu ACC/Tolak</th>
                       <th>Aksi</th>
                     </tr>
                   </thead>
@@ -191,6 +214,7 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
                           <?php endif; ?>
                         </td>
                         <td><?= htmlspecialchars($row['acc_hrd_by'] ?? '-') ?></td>
+                        <td><?= $row['acc_hrd_time'] ? date('d-m-Y H:i', strtotime($row['acc_hrd_time'])) : '-' ?></td>
                         <td>
                           <?php if ($row['status'] == "Menunggu HRD"): ?>
                             <a href="data_cuti_hrd.php?aksi=acc&id=<?= $row['id'] ?>" 

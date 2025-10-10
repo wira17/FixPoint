@@ -170,7 +170,7 @@ $dataExit = mysqli_query($conn, "SELECT * FROM exit_clearance ORDER BY created_a
                             <th>Jenis Aset</th>
                             <th>Keterangan</th>
                             <th>Status</th>
-                            <th>Tanda Tangan Penerima</th>
+                            <th>Penerima</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -254,7 +254,7 @@ $dataExit = mysqli_query($conn, "SELECT * FROM exit_clearance ORDER BY created_a
           <th>Tanggal Resign</th>
           <th>Aset</th>
           <th>Serah Terima</th>
-          <th>Created At</th>
+          <th>Dibuat</th>
           <th>Aksi</th> <!-- Kolom baru -->
         </tr>
       </thead>

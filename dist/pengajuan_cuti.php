@@ -28,6 +28,7 @@ $delegasiList = mysqli_query($conn, "SELECT id, nama FROM users
                                      AND id <> '".$userLogin['id']."' 
                                      ORDER BY nama ASC");
 
+// === Proses Simpan Pengajuan ===
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['simpan'])) {
   $karyawan_id    = $userLogin['id'];
   $master_cuti_id = intval($_POST['master_cuti_id']);
@@ -35,6 +36,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['simpan'])) {
   $alasan         = mysqli_real_escape_string($conn, $_POST['alasan']);
   $tanggalArray   = $_POST['tanggal'] ?? [];
 
+  // === Cek apakah masih ada cuti yang statusnya pending ===
+  $cekPending = mysqli_query($conn, "
+    SELECT id FROM pengajuan_cuti 
+    WHERE karyawan_id='$karyawan_id' 
+      AND (
+          status_delegasi='Menunggu' 
+          OR status_atasan='Menunggu' 
+          OR status_hrd='Menunggu'
+      )
+    LIMIT 1
+  ");
+
+  if (mysqli_num_rows($cekPending) > 0) {
+    $_SESSION['flash_message'] = "⚠️ Anda masih memiliki pengajuan cuti yang belum diproses. Tunggu sampai disetujui atau ditolak sebelum mengajukan lagi.";
+    header("Location: pengajuan_cuti.php");
+    exit;
+  }
+
+  // === Validasi field ===
   if ($master_cuti_id <= 0 || empty($tanggalArray)) {
     $_SESSION['flash_message'] = "Semua field wajib diisi!";
   } else {
@@ -66,14 +86,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['simpan'])) {
       }
 
       mysqli_commit($conn);
-      $_SESSION['flash_message'] = "Pengajuan cuti berhasil disimpan.";
+      $_SESSION['flash_message'] = "✅ Pengajuan cuti berhasil disimpan.";
     } catch (Exception $e) {
       mysqli_rollback($conn);
-      $_SESSION['flash_message'] = "Gagal menyimpan data: " . $e->getMessage();
+      $_SESSION['flash_message'] = "❌ Gagal menyimpan data: " . $e->getMessage();
     }
   }
   header("Location: pengajuan_cuti.php");
   exit;
+}
+
+// === Data jatah cuti user login (untuk modal info cuti) ===
+$tahun = date('Y');
+$sql = "SELECT mc.nama_cuti, mc.id as cuti_id, jc.lama_hari, jc.sisa_hari,
+               (jc.lama_hari - jc.sisa_hari) AS terpakai
+        FROM jatah_cuti jc
+        JOIN master_cuti mc ON jc.cuti_id = mc.id
+        WHERE jc.karyawan_id = ? AND jc.tahun = ?";
+$stmt = $conn->prepare($sql);
+if ($stmt) {
+    $stmt->bind_param("ii", $user_id, $tahun);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $dataCuti = [];
+    while($row = $result->fetch_assoc()){ $dataCuti[] = $row; }
+    $stmt->close();
+} else {
+    $dataCuti = [];
 }
 
 // === Ambil Data Pengajuan Cuti untuk Tabel ===
@@ -85,10 +124,12 @@ $dataPengajuan = mysqli_query($conn, "
   JOIN master_cuti mc ON p.cuti_id = mc.id
   LEFT JOIN users d ON p.delegasi_id = d.id
   LEFT JOIN pengajuan_cuti_detail pc ON pc.pengajuan_id = p.id
+  WHERE p.karyawan_id = '$user_id'
   GROUP BY p.id
   ORDER BY p.id DESC
 ");
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">
@@ -128,9 +169,15 @@ $dataPengajuan = mysqli_query($conn, "
           <?php endif; ?>
 
           <div class="card">
-            <div class="card-header">
-              <h4 class="mb-0">Pengajuan Cuti</h4>
-            </div>
+           <div class="card-header">
+  <h4 class="mb-0">
+    Pengajuan Cuti 
+    <a href="#" data-toggle="modal" data-target="#modalInfoCuti" class="ml-2 text-danger" title="Info Cuti">
+      <i class="fas fa-question-circle"></i>
+    </a>
+  </h4>
+</div>
+
 
             <div class="card-body">
               <!-- Tab menu -->
@@ -147,53 +194,67 @@ $dataPengajuan = mysqli_query($conn, "
               <div class="tab-content mt-3">
                 <!-- Form Input -->
                 <div class="tab-pane fade show active" id="input" role="tabpanel">
-                  <form method="post">
-                    <div class="form-group">
-                      <label>Karyawan</label>
-                      <input type="text" class="form-control" value="<?= htmlspecialchars($userLogin['nama']) ?>" readonly>
-                    </div>
-                    <div class="form-group">
-                      <label for="master_cuti_id">Jenis Cuti</label>
-                      <select name="master_cuti_id" id="master_cuti_id" class="form-control" required>
-                        <option value="">-- Pilih Jenis Cuti --</option>
-                        <?php while($mc = mysqli_fetch_assoc($masterCuti)): ?>
-                          <option value="<?= $mc['id'] ?>"><?= htmlspecialchars($mc['nama_cuti']) ?></option>
-                        <?php endwhile; ?>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="delegasi_id">Delegasi (Pengganti)</label>
-                      <select name="delegasi_id" id="delegasi_id" class="form-control" required>
-                        <option value="">-- Pilih Delegasi --</option>
-                        <?php while($d = mysqli_fetch_assoc($delegasiList)): ?>
-                          <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['nama']) ?></option>
-                        <?php endwhile; ?>
-                      </select>
-                    </div>
-                   <div id="tanggal-wrapper">
-                      <div class="input-group mb-2">
-                        <input type="date" name="tanggal[]" class="form-control" required>
-                        <div class="input-group-append">
-                          <button type="button" class="btn btn-danger btn-remove-tanggal">&times;</button>
-                        </div>
-                      </div>
-                    </div>
-                    <button type="button" id="btnAddTanggal" class="btn btn-success btn-sm mb-3">
-                      + Tambah Tanggal
-                    </button>
+                 <form method="post">
+  <div class="row">
+    <!-- Kolom Kiri -->
+    <div class="col-md-6">
+      <div class="form-group">
+        <label>Karyawan</label>
+        <input type="text" class="form-control" value="<?= htmlspecialchars($userLogin['nama']) ?>" readonly>
+      </div>
+      <div class="form-group">
+        <label for="master_cuti_id">Jenis Cuti</label>
+        <select name="master_cuti_id" id="master_cuti_id" class="form-control" required>
+          <option value="">-- Pilih Jenis Cuti --</option>
+          <?php while($mc = mysqli_fetch_assoc($masterCuti)): ?>
+            <option value="<?= $mc['id'] ?>"><?= htmlspecialchars($mc['nama_cuti']) ?></option>
+          <?php endwhile; ?>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="delegasi_id">Delegasi (Pengganti)</label>
+        <select name="delegasi_id" id="delegasi_id" class="form-control" required>
+          <option value="">-- Pilih Delegasi --</option>
+          <?php while($d = mysqli_fetch_assoc($delegasiList)): ?>
+            <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['nama']) ?></option>
+          <?php endwhile; ?>
+        </select>
+      </div>
+    </div>
 
-                    <div class="form-group">
-                      <label for="lama_hari">Jumlah Hari</label>
-                      <input type="number" name="lama_hari" id="lama_hari" class="form-control" readonly required>
-                    </div>
-                    <div class="form-group">
-                      <label for="alasan">Alasan</label>
-                      <textarea name="alasan" id="alasan" class="form-control" required></textarea>
-                    </div>
-                    <button type="submit" name="simpan" class="btn btn-primary">
-                      <i class="fas fa-paper-plane"></i> Ajukan
-                    </button>
-                  </form>
+    <!-- Kolom Kanan -->
+    <div class="col-md-6">
+      <label for="tanggal">Tanggal Cuti</label>
+      <div id="tanggal-wrapper">
+        <div class="input-group mb-2">
+          <input type="date" name="tanggal[]" class="form-control" required>
+          <div class="input-group-append">
+            <button type="button" class="btn btn-danger btn-remove-tanggal">&times;</button>
+          </div>
+        </div>
+      </div>
+      <button type="button" id="btnAddTanggal" class="btn btn-success btn-sm mb-3">
+        + Tambah Tanggal
+      </button>
+
+      <div class="form-group">
+        <label for="lama_hari">Jumlah Hari</label>
+        <input type="number" name="lama_hari" id="lama_hari" class="form-control" readonly required>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full width -->
+  <div class="form-group">
+    <label for="alasan">Alasan</label>
+    <textarea name="alasan" id="alasan" class="form-control" required></textarea>
+  </div>
+
+  <button type="submit" name="simpan" class="btn btn-primary">
+    <i class="fas fa-paper-plane"></i> Ajukan
+  </button>
+</form>
+
                 </div>
 
                
@@ -278,6 +339,55 @@ $dataPengajuan = mysqli_query($conn, "
     </div>
   </div>
 </div>
+
+
+<!-- Modal Info Cuti -->
+<div class="modal fade" id="modalInfoCuti" tabindex="-1" role="dialog" aria-labelledby="modalInfoCutiLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalInfoCutiLabel"><i class="fas fa-info-circle"></i> Informasi Jatah Cuti <?= $tahun ?></h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <?php if (!empty($dataCuti)): ?>
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm">
+              <thead class="thead-light">
+                <tr>
+                  <th>Jenis Cuti</th>
+                  <th>Jatah (Hari)</th>
+                  <th>Terpakai</th>
+                  <th>Sisa</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($dataCuti as $cuti): ?>
+                  <tr>
+                    <td><?= htmlspecialchars($cuti['nama_cuti']) ?></td>
+                    <td><?= $cuti['lama_hari'] ?></td>
+                    <td><?= $cuti['terpakai'] ?></td>
+                    <td><?= $cuti['sisa_hari'] ?></td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php else: ?>
+          <div class="alert alert-warning mb-0">
+            Data jatah cuti belum tersedia untuk tahun <?= $tahun ?>.
+          </div>
+        <?php endif; ?>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- JS -->
 <script src="assets/modules/jquery.min.js"></script>

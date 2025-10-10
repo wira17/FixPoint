@@ -130,6 +130,7 @@ date_default_timezone_set('Asia/Jakarta'); // WIB
 
 
 
+
   </form>
 
   <ul class="navbar-nav navbar-right">
@@ -189,7 +190,6 @@ date_default_timezone_set('Asia/Jakarta'); // WIB
     </div>
   </div>
 </div>
-
 
 
 
@@ -277,35 +277,73 @@ date_default_timezone_set('Asia/Jakarta'); // WIB
       </div>
       <div class="modal-body">
 
-        <ul class="list-group list-group-flush">
-          <li class="list-group-item"><i class="fas fa-home mr-2"></i><strong>Dashboard:</strong> Ringkasan informasi penting dan status tiket</li>
-          <li class="list-group-item"><i class="fas fa-plus-circle mr-2"></i><strong>Buat Tiket:</strong> Formulir untuk melaporkan masalah atau permintaan</li>
-          <li class="list-group-item"><i class="fas fa-list-ul mr-2"></i><strong>Daftar Tiket:</strong> Lihat status, detail, dan histori tiket</li>
-          <li class="list-group-item"><i class="fas fa-history mr-2"></i><strong>Riwayat Tiket:</strong> Semua tiket yang sudah selesai / ditutup</li>
-          <li class="list-group-item"><i class="fas fa-comments mr-2"></i><strong>Chat:</strong> Kirim pesan langsung ke tim support/pengguna lain</li>
-          <li class="list-group-item"><i class="fas fa-book mr-2"></i><strong>Panduan Tiket:</strong> Informasi tentang jenis masalah yang bisa diajukan</li>
-          <li class="list-group-item"><i class="fas fa-envelope-open-text mr-2"></i><strong>Surat Masuk:</strong> Mencatat dan mengelola surat masuk instansi</li>
-          <li class="list-group-item"><i class="fas fa-paper-plane mr-2"></i><strong>Surat Keluar:</strong> Pembuatan dan pengarsipan surat keluar</li>
-          <li class="list-group-item"><i class="fas fa-archive mr-2"></i><strong>Arsip Digital:</strong> Penyimpanan dokumen dalam bentuk digital</li>
-          <li class="list-group-item"><i class="fas fa-calendar-alt mr-2"></i><strong>Agenda Direktur:</strong> Jadwal kegiatan penting Direktur/Pimpinan</li>
-          <li class="list-group-item"><i class="fas fa-clipboard-list mr-2"></i><strong>Laporan Harian:</strong> Catatan aktivitas kerja harian karyawan</li>
-          <li class="list-group-item"><i class="fas fa-calendar-check mr-2"></i><strong>Laporan Bulanan:</strong> Rekap aktivitas bulanan per bidang</li>
-          <li class="list-group-item"><i class="fas fa-chart-line mr-2"></i><strong>Laporan Tahunan:</strong> Laporan kinerja tahunan organisasi</li>
-          <li class="list-group-item"><i class="fas fa-plane-departure mr-2"></i><strong>Pengajuan Cuti:</strong> Form untuk mengajukan cuti pegawai</li>
-          <li class="list-group-item"><i class="fas fa-door-open mr-2"></i><strong>Izin Keluar:</strong> Form untuk izin keluar kantor</li>
-          <li class="list-group-item"><i class="fas fa-money-check-alt mr-2"></i><strong>Transaksi Gaji:</strong> Input data gaji pegawai</li>
-          <li class="list-group-item"><i class="fas fa-desktop mr-2"></i><strong>Data Barang IT:</strong> Inventaris dan stok perangkat IT</li>
-          <li class="list-group-item"><i class="fas fa-file-signature mr-2"></i><strong>Berita Acara:</strong> Catatan resmi kegiatan Hasil pemeriksaan barang</li>
-          <li class="list-group-item"><i class="fas fa-tools mr-2"></i><strong>Maintenance Rutin:</strong> Jadwal dan aktivitas perawatan perangkat</li>
-          <li class="list-group-item"><i class="fas fa-clock mr-2"></i><strong>Handling Time:</strong> Waktu penanganan tiket yang telah diproses</li>
-         
-          <li class="list-group-item"><i class="fas fa-key mr-2"></i><strong>Hak Akses:</strong> Pengaturan akses menu berdasarkan user</li>
-          <li class="list-group-item"><i class="fas fa-users-cog mr-2"></i><strong>Pengguna:</strong> Manajemen akun dan profil pengguna</li>
-         
-          <li class="list-group-item"><i class="fas fa-id-card mr-2"></i><strong>Profil Saya:</strong> Data diri pengguna dan perubahan password</li>
-          <li class="list-group-item"><i class="fas fa-info-circle mr-2"></i><strong>Tentang Aplikasi:</strong> Informasi pengembang dan lisensi aplikasi</li>
-          <li class="list-group-item"><i class="fas fa-sign-out-alt mr-2"></i><strong>Keluar:</strong> Logout dari sistem</li>
-        </ul>
+       <ul class="list-group list-group-flush">
+  <li class="list-group-item"><i class="fas fa-fire mr-2"></i><strong>Dashboard:</strong> Ringkasan informasi penting dan status tiket</li>
+  <li class="list-group-item"><i class="fas fa-user-tie mr-2"></i><strong>Dashboard Direktur:</strong> Ringkasan Direktur</li>
+
+  <li class="list-group-item"><i class="fas fa-cogs mr-2"></i><strong>Data Tiket IT Hard:</strong> Monitoring hardware IT</li>
+  <li class="list-group-item"><i class="fas fa-code mr-2"></i><strong>Data Tiket IT Soft:</strong> Monitoring software IT</li>
+  <li class="list-group-item"><i class="fas fa-calendar-times mr-2"></i><strong>Data Off-Duty:</strong> Data cuti/tidak bertugas</li>
+  <li class="list-group-item"><i class="fas fa-user-slash mr-2"></i><strong>Off-Duty:</strong> Pengajuan cuti/tidak bertugas</li>
+  <li class="list-group-item"><i class="fas fa-ticket-alt mr-2"></i><strong>Tiket IT Hard:</strong> Order tiket hardware IT</li>
+  <li class="list-group-item"><i class="fas fa-ticket-alt mr-2"></i><strong>Tiket IT Soft:</strong> Order tiket software IT</li>
+  <li class="list-group-item"><i class="fas fa-stopwatch mr-2"></i><strong>Handling Time:</strong> Waktu penanganan tiket</li>
+  <li class="list-group-item"><i class="fas fa-file-alt mr-2"></i><strong>SPO IT:</strong> Standar Operasional Prosedur IT</li>
+  <li class="list-group-item"><i class="fas fa-file-signature mr-2"></i><strong>Input SPO IT:</strong> Input dokumen SPO IT</li>
+  <li class="list-group-item"><i class="fas fa-scroll mr-2"></i><strong>Berita Acara:</strong> Catatan pemeriksaan barang IT</li>
+  <li class="list-group-item"><i class="fas fa-boxes mr-2"></i><strong>Data Barang IT:</strong> Inventaris perangkat IT</li>
+  <li class="list-group-item"><i class="fas fa-sync-alt mr-2"></i><strong>Maintenance Rutin:</strong> Perawatan rutin perangkat IT</li>
+  <li class="list-group-item"><i class="fas fa-link mr-2"></i><strong>Koneksi Bridging:</strong> Koneksi sistem integrasi</li>
+
+  <li class="list-group-item"><i class="fas fa-ticket-alt mr-2"></i><strong>Order Tiket Sarpras:</strong> Permintaan sarana prasarana</li>
+  <li class="list-group-item"><i class="fas fa-clipboard-list mr-2"></i><strong>Data Tiket Sarpras:</strong> Daftar tiket sarpras</li>
+  <li class="list-group-item"><i class="fas fa-stopwatch mr-2"></i><strong>Handling Time Sarpras:</strong> Waktu penanganan sarpras</li>
+  <li class="list-group-item"><i class="fas fa-boxes mr-2"></i><strong>Barang Sarpras:</strong> Inventaris sarana prasarana</li>
+  <li class="list-group-item"><i class="fas fa-cogs mr-2"></i><strong>Maintenance Sarpras:</strong> Perawatan rutin sarpras</li>
+
+  <li class="list-group-item"><i class="fas fa-chart-line mr-2"></i><strong>Indikator Mutu:</strong> Monitoring mutu dan kinerja</li>
+
+  <li class="list-group-item"><i class="fas fa-file-alt mr-2"></i><strong>Data Dokumen:</strong> Dokumen akreditasi</li>
+  <li class="list-group-item"><i class="fas fa-plus mr-2"></i><strong>Input Dokumen:</strong> Upload dokumen akreditasi</li>
+  <li class="list-group-item"><i class="fas fa-database mr-2"></i><strong>Master Pokja:</strong> Data tim kerja akreditasi</li>
+
+  <li class="list-group-item"><i class="fas fa-user-clock mr-2"></i><strong>Transaksi Gaji:</strong> Input dan pengelolaan gaji</li>
+  <li class="list-group-item"><i class="fas fa-user-clock mr-2"></i><strong>Data Gaji:</strong> Rekapitulasi gaji pegawai</li>
+
+  <li class="list-group-item"><i class="fas fa-envelope-open-text mr-2"></i><strong>Surat Masuk:</strong> Kelola surat masuk</li>
+  <li class="list-group-item"><i class="fas fa-paper-plane mr-2"></i><strong>Surat Keluar:</strong> Kelola surat keluar</li>
+  <li class="list-group-item"><i class="fas fa-archive mr-2"></i><strong>Arsip Digital:</strong> Dokumentasi arsip digital</li>
+  <li class="list-group-item"><i class="fas fa-calendar-alt mr-2"></i><strong>Agenda Direktur:</strong> Jadwal penting pimpinan</li>
+  <li class="list-group-item"><i class="fas fa-calendar-check mr-2"></i><strong>Lihat Agenda:</strong> Monitoring agenda</li>
+  <li class="list-group-item"><i class="fas fa-folder-open mr-2"></i><strong>Kategori Arsip:</strong> Pengelompokan arsip</li>
+
+  <li class="list-group-item"><i class="fas fa-clipboard-list mr-2"></i><strong>Catatan Kerja:</strong> Rekap aktivitas kerja</li>
+  <li class="list-group-item"><i class="fas fa-calendar-check mr-2"></i><strong>Laporan Harian:</strong> Catatan harian karyawan</li>
+  <li class="list-group-item"><i class="fas fa-file-alt mr-2"></i><strong>Laporan Bulanan:</strong> Rekap bulanan</li>
+  <li class="list-group-item"><i class="fas fa-calendar-alt mr-2"></i><strong>Laporan Tahunan:</strong> Rekap tahunan</li>
+
+  <li class="list-group-item"><i class="fas fa-users mr-2"></i><strong>Data Karyawan:</strong> Data pegawai</li>
+  <li class="list-group-item"><i class="fas fa-users mr-2"></i><strong>Exit Clearance:</strong> Proses keluar pegawai</li>
+  <li class="list-group-item"><i class="fas fa-calendar-alt mr-2"></i><strong>Master Cuti:</strong> Data cuti pegawai</li>
+  <li class="list-group-item"><i class="fas fa-file-signature mr-2"></i><strong>Pengajuan Cuti:</strong> Form pengajuan cuti</li>
+  <li class="list-group-item"><i class="fas fa-calendar-check mr-2"></i><strong>Jatah Cuti:</strong> Kuota cuti pegawai</li>
+
+  <li class="list-group-item"><i class="fas fa-door-open mr-2"></i><strong>Izin Keluar:</strong> Form izin keluar kantor</li>
+
+  <li class="list-group-item"><i class="fas fa-clock mr-2"></i><strong>Jadwal:</strong> Jadwal dinas dan absensi</li>
+
+  <li class="list-group-item"><i class="fas fa-users-cog mr-2"></i><strong>Rekruitment:</strong> Proses penerimaan pegawai</li>
+
+  <li class="list-group-item"><i class="fas fa-globe mr-2"></i><strong>Website:</strong> Konten website dan dokumentasi</li>
+
+  <li class="list-group-item"><i class="fas fa-folder mr-2"></i><strong>Master Data:</strong> Data perusahaan dan pengguna</li>
+
+  <li class="list-group-item"><i class="fas fa-cogs mr-2"></i><strong>Setting:</strong> Pengaturan akun dan profil</li>
+
+  <li class="list-group-item"><i class="fas fa-info-circle mr-2"></i><strong>Tentang Aplikasi:</strong> Informasi pengembang dan lisensi</li>
+  <li class="list-group-item"><i class="fas fa-sign-out-alt mr-2"></i><strong>Keluar:</strong> Logout dari sistem</li>
+</ul>
+
 
       </div>
       <div class="modal-footer">
@@ -323,7 +361,7 @@ date_default_timezone_set('Asia/Jakarta'); // WIB
   <div class="modal-dialog modal-dialog-centered modal-lg" role="document" style="max-width: 700px;">
     <div class="modal-content">
       <div class="modal-header bg-warning text-dark">
-        <h5 class="modal-title" id="catatanModalLabel"><i class="fas fa-pen-square"></i> Catatan Kerja</h5>
+        <h5 class="modal-title" id="catatanModalLabel"><i class="fas fa-pen-square"></i> Log Book</h5>
         <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Tutup">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -360,6 +398,7 @@ date_default_timezone_set('Asia/Jakarta'); // WIB
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.6.2/js/bootstrap.min.js"></script>
 <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.6.2/css/bootstrap.min.css" rel="stylesheet">
+
 
 <!-- Jam Digital -->
 <script>
@@ -528,4 +567,6 @@ Swal.fire({
   timerProgressBar: true
 });
 </script>
+
+
 <?php unset($_SESSION['notif']); endif; ?>

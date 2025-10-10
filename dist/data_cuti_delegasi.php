@@ -38,7 +38,8 @@ if (isset($_GET['aksi'], $_GET['id'])) {
     $sql = "UPDATE pengajuan_cuti 
             SET status='" . mysqli_real_escape_string($conn, $status) . "',
                 status_delegasi='" . mysqli_real_escape_string($conn, $status_delegasi) . "',
-                acc_delegasi_by='" . mysqli_real_escape_string($conn, $nama_user) . "'
+                acc_delegasi_by='" . mysqli_real_escape_string($conn, $nama_user) . "',
+                acc_delegasi_time=NOW()
             WHERE id='$id'";
     $update = mysqli_query($conn, $sql);
 
@@ -56,7 +57,7 @@ if (isset($_GET['aksi'], $_GET['id'])) {
 // === Ambil data pengajuan cuti ===
 $sqlPengajuan = "
   SELECT p.*, u.nama AS nama_karyawan, mc.nama_cuti, d.nama AS nama_delegasi,
-         p.acc_delegasi_by,
+         p.acc_delegasi_by, p.acc_delegasi_time,
          GROUP_CONCAT(DATE_FORMAT(pc.tanggal,'%d-%m-%Y') ORDER BY pc.tanggal SEPARATOR ', ') AS tanggal_cuti
   FROM pengajuan_cuti p
   JOIN users u ON p.karyawan_id = u.id
@@ -124,6 +125,7 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
                       <th>Alasan</th>
                       <th>Status</th>
                       <th>Disetujui Oleh</th>
+                      <th>Waktu ACC/Tolak</th>
                       <th>Aksi</th>
                     </tr>
                   </thead>
@@ -148,6 +150,7 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
                           <?php endif; ?>
                         </td>
                         <td><?= htmlspecialchars($row['acc_delegasi_by'] ?? '-') ?></td>
+                        <td><?= $row['acc_delegasi_time'] ? date('d-m-Y H:i', strtotime($row['acc_delegasi_time'])) : '-' ?></td>
                         <td>
                           <?php if ($row['status'] == "Menunggu Delegasi"): ?>
                             <a href="data_cuti_delegasi.php?aksi=acc&id=<?= $row['id'] ?>" 

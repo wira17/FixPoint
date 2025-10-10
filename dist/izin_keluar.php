@@ -105,7 +105,6 @@ if (isset($_POST['simpan'])) {
     exit;
 }
 
-
 // --- Proses update jam kembali real + WA ---
 if (isset($_GET['kembali'])) {
     $id_kembali = intval($_GET['kembali']);
@@ -146,13 +145,31 @@ if (isset($_GET['kembali'])) {
     exit;
 }
 
-// Ambil data izin keluar user
-$qIzin = $conn->prepare("SELECT * FROM izin_keluar WHERE user_id = ? ORDER BY tanggal DESC, created_at DESC");
-$qIzin->bind_param("i", $user_id);
-$qIzin->execute();
-$data_izin = $qIzin->get_result();
+// --- Filter & Pagination Data Tersimpan ---
+// Ambil filter tanggal
+$tanggal_filter = $_GET['tanggal'] ?? date('Y-m-d');
+
+// Pagination
+$limit = 10;
+$page = isset($_GET['page']) ? max(1,intval($_GET['page'])) : 1;
+$start = ($page - 1) * $limit;
+
+// Hitung total data
+$stmtCount = $conn->prepare("SELECT COUNT(*) as total FROM izin_keluar WHERE user_id=? AND tanggal=?");
+$stmtCount->bind_param("is", $user_id, $tanggal_filter);
+$stmtCount->execute();
+$resCount = $stmtCount->get_result()->fetch_assoc();
+$total_data = $resCount['total'];
+$total_page = ceil($total_data / $limit);
+
+// Ambil data izin keluar user berdasarkan filter & pagination
+$stmtIzin = $conn->prepare("SELECT * FROM izin_keluar WHERE user_id=? AND tanggal=? ORDER BY created_at DESC LIMIT ?,?");
+$stmtIzin->bind_param("isii", $user_id, $tanggal_filter, $start, $limit);
+$stmtIzin->execute();
+$data_izin = $stmtIzin->get_result();
 
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -211,67 +228,87 @@ $data_izin = $qIzin->get_result();
 </div>
 
 <div class="tab-pane fade" id="data" role="tabpanel">
-<div class="table-responsive">
-<table class="table table-bordered izin-table">
-<thead>
-<tr class="text-center">
-<th>No</th>
-<th>Tanggal</th>
-<th>Jam Keluar</th>
-<th>Jam Kembali (Estimasi)</th>
-<th>Jam Kembali (Real)</th>
-<th>Keperluan</th>
-<th>Waktu Input</th>
-<th>ACC Atasan</th>
-<th>ACC SDM</th>
-<th>Aksi</th>
-</tr>
-</thead>
-<tbody>
-<?php if ($data_izin && $data_izin->num_rows > 0): ?>
-<?php $no = 1; while ($izin = $data_izin->fetch_assoc()) : ?>
-<tr>
-<td class="text-center"><?= $no++ ?></td>
-<td><?= htmlspecialchars(date('d-m-Y', strtotime($izin['tanggal']))) ?></td>
-<td><?= htmlspecialchars($izin['jam_keluar']) ?></td>
-<td class="text-center"><?= htmlspecialchars($izin['jam_kembali']) ?></td>
-<td class="text-center">
-<?php
-if (empty($izin['jam_kembali_real'])) {
-echo '<a href="izin_keluar.php?kembali=' . $izin['id'] . '" class="btn btn-sm btn-warning" onclick="return confirm(\'Yakin ingin update jam kembali sekarang?\')"><i class="fas fa-undo"></i> Kembali / Update</a>';
-} else {
-echo htmlspecialchars($izin['jam_kembali_real']);
-}
-?>
-</td>
-<td><?= htmlspecialchars($izin['keperluan']) ?></td>
-<td><?= htmlspecialchars(date('d-m-Y H:i', strtotime($izin['created_at']))) ?></td>
-<td class="text-center">
-<?php
-$badgeAts = ($izin['status_atasan']=='disetujui')?'success':(($izin['status_atasan']=='ditolak')?'danger':'secondary');
-echo "<span class='badge badge-{$badgeAts}'>".ucfirst($izin['status_atasan'])."</span><br>";
-echo "<small>".($izin['waktu_acc_atasan']?date('d-m-Y H:i',strtotime($izin['waktu_acc_atasan'])):'-')."</small>";
-?>
-</td>
-<td class="text-center">
-<?php
-$badgeSdm = ($izin['status_sdm']=='disetujui')?'success':(($izin['status_sdm']=='ditolak')?'danger':'secondary');
-echo "<span class='badge badge-{$badgeSdm}'>".ucfirst($izin['status_sdm'])."</span><br>";
-echo "<small>".($izin['waktu_acc_sdm']?date('d-m-Y H:i',strtotime($izin['waktu_acc_sdm'])):'-')."</small>";
-?>
-</td>
-<td class="text-center">
-<a href="cetak_izin_keluar.php?id=<?= $izin['id'] ?>" target="_blank" class="btn btn-sm btn-info" title="Cetak Surat"><i class="fas fa-print"></i></a>
-</td>
-</tr>
-<?php endwhile; ?>
-<?php else: ?>
-<tr><td colspan="10" class="text-center">Belum ada data izin keluar.</td></tr>
-<?php endif; ?>
-</tbody>
-</table>
+  <form method="GET" class="form-inline mb-2">
+    <input type="date" name="tanggal" class="form-control mr-2" value="<?= htmlspecialchars($tanggal_filter) ?>">
+    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filter</button>
+  </form>
+
+  <div class="table-responsive">
+  <table class="table table-bordered izin-table">
+  <thead>
+  <tr class="text-center">
+    <th>No</th>
+    <th>Tanggal</th>
+    <th>Jam Keluar</th>
+    <th>Jam Kembali (Estimasi)</th>
+    <th>Jam Kembali (Real)</th>
+    <th>Keperluan</th>
+    <th>Waktu Input</th>
+    <th>ACC Atasan</th>
+    <th>ACC SDM</th>
+    <th>Aksi</th>
+  </tr>
+  </thead>
+  <tbody>
+  <?php if ($data_izin && $data_izin->num_rows > 0): ?>
+  <?php $no = $start + 1; while ($izin = $data_izin->fetch_assoc()) : ?>
+  <tr>
+    <td class="text-center"><?= $no++ ?></td>
+    <td><?= htmlspecialchars(date('d-m-Y', strtotime($izin['tanggal']))) ?></td>
+    <td><?= htmlspecialchars($izin['jam_keluar']) ?></td>
+    <td class="text-center"><?= htmlspecialchars($izin['jam_kembali']) ?></td>
+    <td class="text-center">
+      <?php
+      if (empty($izin['jam_kembali_real'])) {
+        echo '<a href="izin_keluar.php?kembali=' . $izin['id'] . '" class="btn btn-sm btn-warning" onclick="return confirm(\'Yakin ingin update jam kembali sekarang?\')"><i class="fas fa-undo"></i> Kembali / Update</a>';
+      } else {
+        echo htmlspecialchars($izin['jam_kembali_real']);
+      }
+      ?>
+    </td>
+    <td><?= htmlspecialchars($izin['keperluan']) ?></td>
+    <td><?= htmlspecialchars(date('d-m-Y H:i', strtotime($izin['created_at']))) ?></td>
+    <td class="text-center">
+      <?php
+      $badgeAts = ($izin['status_atasan']=='disetujui')?'success':(($izin['status_atasan']=='ditolak')?'danger':'secondary');
+      echo "<span class='badge badge-{$badgeAts}'>".ucfirst($izin['status_atasan'])."</span><br>";
+      echo "<small>".($izin['waktu_acc_atasan']?date('d-m-Y H:i',strtotime($izin['waktu_acc_atasan'])):'-')."</small>";
+      ?>
+    </td>
+    <td class="text-center">
+      <?php
+      $badgeSdm = ($izin['status_sdm']=='disetujui')?'success':(($izin['status_sdm']=='ditolak')?'danger':'secondary');
+      echo "<span class='badge badge-{$badgeSdm}'>".ucfirst($izin['status_sdm'])."</span><br>";
+      echo "<small>".($izin['waktu_acc_sdm']?date('d-m-Y H:i',strtotime($izin['waktu_acc_sdm'])):'-')."</small>";
+      ?>
+    </td>
+    <td class="text-center">
+      <a href="cetak_izin_keluar.php?id=<?= $izin['id'] ?>" target="_blank" class="btn btn-sm btn-info" title="Cetak Surat"><i class="fas fa-print"></i></a>
+    </td>
+  </tr>
+  <?php endwhile; ?>
+  <?php else: ?>
+  <tr><td colspan="10" class="text-center">Belum ada data izin keluar.</td></tr>
+  <?php endif; ?>
+  </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <?php if ($total_page > 1): ?>
+  <nav>
+    <ul class="pagination justify-content-center">
+      <?php for($i=1;$i<=$total_page;$i++): ?>
+        <li class="page-item <?= $i==$page?'active':'' ?>">
+          <a class="page-link" href="?tanggal=<?= $tanggal_filter ?>&page=<?= $i ?>"><?= $i ?></a>
+        </li>
+      <?php endfor; ?>
+    </ul>
+  </nav>
+  <?php endif; ?>
+
+  </div>
 </div>
-</div>
+
 
 </div>
 </div>

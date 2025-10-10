@@ -66,6 +66,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['user_id'])) {
       display: none;
       min-width: 300px;
     }
+
+    /* Lebarkan modal */
+.modal-dialog {
+  max-width: 900px; /* atur sesuai kebutuhan */
+}
+
+/* Scrollable modal-body */
+.modal-body {
+  max-height: 500px; /* atur tinggi maksimal modal */
+  overflow-y: auto; /* scroll vertikal jika konten lebih tinggi */
+}
+
   </style>
 </head>
 <body>

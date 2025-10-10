@@ -210,114 +210,115 @@ $data_barang = mysqli_query($conn, "SELECT * FROM data_barang_it ORDER BY nama_b
 </form>
 
 
-  <div class="table-responsive table-sm">
-    <table class="table table-bordered table-hover table-sm text-nowrap" style="font-size: 13px;">
+ <div class="table-responsive table-sm">
+  <table class="table table-bordered table-hover table-sm text-nowrap" style="font-size: 13px;">
     <thead class="thead-light">
-  <tr>
-    <th style="width: 30px;">NO</th>
-    <th>Nama Barang</th>
-    <th>Lokasi</th>
-    <th>Kondisi Fisik</th>
-    <th>Fungsi Perangkat</th>
-    <th>Catatan</th>
-    <th>Teknisi</th>
-    <th>Waktu</th>
-    <th>Status</th> <!-- Tambahan -->
-  </tr>
-</thead>
-      <tbody>
-  <?php
-  $no = 1;
-$where = "";
-if (isset($_GET['dari'], $_GET['sampai']) && $_GET['dari'] && $_GET['sampai']) {
-  $dari = mysqli_real_escape_string($conn, $_GET['dari']);
-  $sampai = mysqli_real_escape_string($conn, $_GET['sampai']);
-  $where = "WHERE DATE(mr.waktu_input) BETWEEN '$dari' AND '$sampai'";
-}
+      <tr>
+        <th style="width: 30px;">No</th>
+        <th style="width: 50px; text-align:center;">Kartu</th>
+        <th>Nama Barang</th>
+        <th>Lokasi</th>
+        <th>Kondisi Fisik</th>
+        <th>Fungsi Perangkat</th>
+        <th>Catatan</th>
+        <th>Teknisi</th>
+        <th>Waktu</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php
+      $no = 1;
+      $where = "";
+      if (isset($_GET['dari'], $_GET['sampai']) && $_GET['dari'] && $_GET['sampai']) {
+        $dari = mysqli_real_escape_string($conn, $_GET['dari']);
+        $sampai = mysqli_real_escape_string($conn, $_GET['sampai']);
+        $where = "WHERE DATE(mr.waktu_input) BETWEEN '$dari' AND '$sampai'";
+      }
 
-//pagination
-// Pagination
-$limit = 6; // jumlah data per halaman
-$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
-if ($page < 1) $page = 1;
-$offset = ($page - 1) * $limit;
+      $limit = 6;
+      $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+      if ($page < 1) $page = 1;
+      $offset = ($page - 1) * $limit;
 
-// Hitung total data
-$total_query = mysqli_query($conn, "SELECT COUNT(*) as total 
+      $total_query = mysqli_query($conn, "SELECT COUNT(*) as total 
+                                          FROM maintanance_rutin mr 
+                                          JOIN data_barang_it db ON mr.barang_id = db.id 
+                                          $where");
+      $total_data = mysqli_fetch_assoc($total_query)['total'];
+      $total_pages = ceil($total_data / $limit);
+
+      $query = mysqli_query($conn, "SELECT mr.*, db.nama_barang, db.lokasi 
                                     FROM maintanance_rutin mr 
                                     JOIN data_barang_it db ON mr.barang_id = db.id 
-                                    $where");
-$total_data = mysqli_fetch_assoc($total_query)['total'];
-$total_pages = ceil($total_data / $limit);
+                                    $where
+                                    ORDER BY mr.waktu_input DESC
+                                    LIMIT $limit OFFSET $offset");
 
+      while ($row = mysqli_fetch_assoc($query)):
+        $waktu_input = strtotime($row['waktu_input']);
+        $now = time();
+        $selisih_bulan = floor(($now - $waktu_input) / (30 * 24 * 60 * 60));
 
+        if ($selisih_bulan < 1) {
+          $status_text = 'Aman';
+          $status_color = 'text-success font-weight-bold';
+        } elseif ($selisih_bulan < 2) {
+          $status_text = 'Persiapkan Maintenance';
+          $status_color = 'text-warning font-weight-bold';
+        } else {
+          $status_text = 'Wajib Maintenance';
+          $status_color = 'text-danger font-weight-bold';
+        }
+      ?>
+        <tr>
+          <td><?= $no++ ?></td>
 
+          <!-- Kolom Kartu -->
+          <td class="text-center">
+            <a href="cetak_kartu_maintenance_it.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-light btn-sm" title="Cetak Kartu">
+              <i class="fas fa-id-card text-primary"></i>
+            </a>
+          </td>
 
-$query = mysqli_query($conn, "SELECT mr.*, db.nama_barang, db.lokasi 
-                              FROM maintanance_rutin mr 
-                              JOIN data_barang_it db ON mr.barang_id = db.id 
-                              $where
-                              ORDER BY mr.waktu_input DESC
-                              LIMIT $limit OFFSET $offset");
+          <td><?= htmlspecialchars($row['nama_barang']) ?></td>
+          <td><?= htmlspecialchars($row['lokasi']) ?></td>
+          <td><?= htmlspecialchars($row['kondisi_fisik']) ?></td>
+          <td><?= htmlspecialchars($row['fungsi_perangkat']) ?></td>
+          <td><?= htmlspecialchars($row['catatan']) ?></td>
+          <td><?= htmlspecialchars($row['nama_teknisi']) ?></td>
+          <td><?= date('d/m/Y H:i', strtotime($row['waktu_input'])) ?></td>
+          <td class="<?= $status_color ?>"><?= $status_text ?></td>
+        </tr>
+      <?php endwhile; ?>
+    </tbody>
+  </table>
 
+  <?php if ($total_pages > 1): ?>
+  <nav>
+    <ul class="pagination justify-content-center">
+      <?php if ($page > 1): ?>
+        <li class="page-item">
+          <a class="page-link" href="?dari=<?= $_GET['dari'] ?? '' ?>&sampai=<?= $_GET['sampai'] ?? '' ?>&page=<?= $page-1 ?>#data">Prev</a>
+        </li>
+      <?php endif; ?>
 
-  while ($row = mysqli_fetch_assoc($query)):
-    $waktu_input = strtotime($row['waktu_input']);
-    $now = time();
-    $selisih_bulan = floor(($now - $waktu_input) / (30 * 24 * 60 * 60)); // kasar, 1 bulan = 30 hari
+      <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+        <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+          <a class="page-link" href="?dari=<?= $_GET['dari'] ?? '' ?>&sampai=<?= $_GET['sampai'] ?? '' ?>&page=<?= $i ?>#data"><?= $i ?></a>
+        </li>
+      <?php endfor; ?>
 
-    // Menentukan status dan warna
-    if ($selisih_bulan < 1) {
-      $status_text = 'Aman';
-      $status_color = 'text-success font-weight-bold';
-    } elseif ($selisih_bulan < 2) {
-      $status_text = 'Persiapkan Maintenance';
-      $status_color = 'text-warning font-weight-bold';
-    } else {
-      $status_text = 'Wajib Maintenance';
-      $status_color = 'text-danger font-weight-bold';
-    }
-  ?>
-    <tr>
-      <td><?= $no++ ?></td>
-      <td><?= htmlspecialchars($row['nama_barang']) ?></td>
-      <td><?= htmlspecialchars($row['lokasi']) ?></td>
-      <td><?= htmlspecialchars($row['kondisi_fisik']) ?></td>
-      <td><?= htmlspecialchars($row['fungsi_perangkat']) ?></td>
-      <td><?= htmlspecialchars($row['catatan']) ?></td>
-      <td><?= htmlspecialchars($row['nama_teknisi']) ?></td>
-      <td><?= date('d/m/Y H:i', strtotime($row['waktu_input'])) ?></td>
-      <td class="<?= $status_color ?>"><?= $status_text ?></td>
-    </tr>
-  <?php endwhile; ?>
-</tbody>
+      <?php if ($page < $total_pages): ?>
+        <li class="page-item">
+          <a class="page-link" href="?dari=<?= $_GET['dari'] ?? '' ?>&sampai=<?= $_GET['sampai'] ?? '' ?>&page=<?= $page+1 ?>#data">Next</a>
+        </li>
+      <?php endif; ?>
+    </ul>
+  </nav>
+  <?php endif; ?>
+</div>
 
-    </table>
-    <?php if ($total_pages > 1): ?>
-<nav>
-  <ul class="pagination justify-content-center">
-    <?php if ($page > 1): ?>
-      <li class="page-item">
-        <a class="page-link" href="?dari=<?= $_GET['dari'] ?? '' ?>&sampai=<?= $_GET['sampai'] ?? '' ?>&page=<?= $page-1 ?>#data">Prev</a>
-      </li>
-    <?php endif; ?>
-
-    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-      <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
-        <a class="page-link" href="?dari=<?= $_GET['dari'] ?? '' ?>&sampai=<?= $_GET['sampai'] ?? '' ?>&page=<?= $i ?>#data"><?= $i ?></a>
-      </li>
-    <?php endfor; ?>
-
-    <?php if ($page < $total_pages): ?>
-      <li class="page-item">
-        <a class="page-link" href="?dari=<?= $_GET['dari'] ?? '' ?>&sampai=<?= $_GET['sampai'] ?? '' ?>&page=<?= $page+1 ?>#data">Next</a>
-      </li>
-    <?php endif; ?>
-  </ul>
-</nav>
-<?php endif; ?>
-
-  </div>
 </div>
 
 

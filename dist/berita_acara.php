@@ -18,11 +18,7 @@ if (mysqli_num_rows($result) == 0) {
 }
 
 
-$cek = mysqli_query($conn, "SELECT id FROM berita_acara WHERE nomor_ba = '$nomor_ba'");
-if (mysqli_num_rows($cek) > 0) {
-  echo "<script>alert('Nomor BA sudah digunakan!'); window.history.back();</script>";
-  exit;
-}
+
 
 $user_id = $_SESSION['user_id'];
 $queryUser = mysqli_query($conn, "SELECT nik, nama, jabatan, unit_kerja FROM users WHERE id = '$user_id'");

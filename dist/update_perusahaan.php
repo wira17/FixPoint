@@ -1,74 +1,89 @@
 <?php
-require 'koneksi.php';
-session_start();
+include 'security.php';
+include 'koneksi.php';
+date_default_timezone_set('Asia/Jakarta');
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $id         = $_POST['id'];
-    $nama       = trim($_POST['nama_perusahaan']);
-    $alamat     = trim($_POST['alamat']);
-    $kota       = trim($_POST['kota']);
-    $provinsi   = trim($_POST['provinsi']);
-    $kontak     = trim($_POST['kontak']);
-    $email      = trim($_POST['email']);
-
-    $folder     = __DIR__ . "/images/logo/";
-    $newLogoName = null;
-
-    if (!empty($_FILES['logo']['name'])) {
-        $logo = $_FILES['logo']['name'];
-        $tmp = $_FILES['logo']['tmp_name'];
-
-        if (!is_dir($folder)) {
-            mkdir($folder, 0777, true);
-        }
-
-        $ext = pathinfo($logo, PATHINFO_EXTENSION);
-        $newLogoName = uniqid('logo_') . '.' . $ext;
-        $uploadPath = $folder . $newLogoName;
-
-        if (move_uploaded_file($tmp, $uploadPath)) {
-            // Hapus logo lama
-            $queryOld = mysqli_query($conn, "SELECT logo FROM perusahaan WHERE id = '$id'");
-            $rowOld = mysqli_fetch_assoc($queryOld);
-            if (!empty($rowOld['logo'])) {
-                $oldLogoPath = $folder . $rowOld['logo'];
-                if (file_exists($oldLogoPath)) {
-                    unlink($oldLogoPath);
-                }
-            }
-        } else {
-            $_SESSION['flash_message'] = "Gagal mengupload file logo.";
-            header("Location: perusahaan.php");
-            exit;
-        }
-    }
-
-    // Bangun query update
-    $query = "UPDATE perusahaan SET 
-              nama_perusahaan = '$nama',
-              alamat = '$alamat',
-              kota = '$kota',
-              provinsi = '$provinsi',
-              kontak = '$kontak',
-              email = '$email'";
-
-    if ($newLogoName) {
-        $query .= ", logo = '$newLogoName'";
-    }
-
-    $query .= " WHERE id = '$id'";
-
-    if (mysqli_query($conn, $query)) {
-        $_SESSION['flash_message'] = "Data perusahaan berhasil diperbarui.";
-    } else {
-        $_SESSION['flash_message'] = "Gagal memperbarui data: " . mysqli_error($conn);
-    }
-
-    header("Location: perusahaan.php");
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: perusahaan.php');
     exit;
-} else {
-    $_SESSION['flash_message'] = "Permintaan tidak valid.";
+}
+
+$id = intval($_POST['id'] ?? 0);
+if ($id <= 0) {
+    $_SESSION['flash_message'] = "ID perusahaan tidak valid.";
     header("Location: perusahaan.php");
     exit;
 }
-?>
+
+$nama     = mysqli_real_escape_string($conn, $_POST['nama_perusahaan'] ?? '');
+$alamat   = mysqli_real_escape_string($conn, $_POST['alamat'] ?? '');
+$kota     = mysqli_real_escape_string($conn, $_POST['kota'] ?? '');
+$provinsi = mysqli_real_escape_string($conn, $_POST['provinsi'] ?? '');
+$kontak   = mysqli_real_escape_string($conn, $_POST['kontak'] ?? '');
+$email    = mysqli_real_escape_string($conn, $_POST['email'] ?? '');
+$lat      = mysqli_real_escape_string($conn, $_POST['latitude'] ?? '');
+$lng      = mysqli_real_escape_string($conn, $_POST['longitude'] ?? '');
+$radius   = intval($_POST['radius'] ?? 0);
+
+$logo_dir = __DIR__ . '/images/logo/';
+if (!is_dir($logo_dir)) mkdir($logo_dir, 0777, true);
+
+// Ambil nama logo lama supaya bisa dihapus jika diganti
+$old_logo = '';
+$stmtOld = $conn->prepare("SELECT logo FROM perusahaan WHERE id = ?");
+$stmtOld->bind_param('i', $id);
+$stmtOld->execute();
+$resOld = $stmtOld->get_result();
+if ($rowOld = $resOld->fetch_assoc()) {
+    $old_logo = $rowOld['logo'];
+}
+$stmtOld->close();
+
+// Proses upload logo baru (opsional)
+$new_logo = null;
+if (isset($_FILES['logo']) && $_FILES['logo']['error'] == 0) {
+    $logo_name = basename($_FILES['logo']['name']);
+    $file_type = strtolower(pathinfo($logo_name, PATHINFO_EXTENSION));
+    $allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+    if (in_array($file_type, $allowed_types)) {
+        $unique_name = uniqid('logo_', true) . '.' . $file_type;
+        $final_path = $logo_dir . $unique_name;
+        if (move_uploaded_file($_FILES['logo']['tmp_name'], $final_path)) {
+            $new_logo = $unique_name;
+            // hapus file lama bila ada
+            if (!empty($old_logo) && file_exists($logo_dir . $old_logo)) {
+                @unlink($logo_dir . $old_logo);
+            }
+        } else {
+            $_SESSION['flash_message'] = "Gagal mengunggah logo.";
+            header("Location: perusahaan.php");
+            exit;
+        }
+    } else {
+        $_SESSION['flash_message'] = "Tipe file logo tidak didukung.";
+        header("Location: perusahaan.php");
+        exit;
+    }
+}
+
+// Build SQL update (dengan prepared statement)
+if ($new_logo !== null) {
+    $sql = "UPDATE perusahaan SET nama_perusahaan=?, alamat=?, kota=?, provinsi=?, kontak=?, email=?, latitude=?, longitude=?, radius=?, logo=? WHERE id=?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('sssssssissi', $nama, $alamat, $kota, $provinsi, $kontak, $email, $lat, $lng, $radius, $new_logo, $id);
+} else {
+    $sql = "UPDATE perusahaan SET nama_perusahaan=?, alamat=?, kota=?, provinsi=?, kontak=?, email=?, latitude=?, longitude=?, radius=? WHERE id=?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('ssssssssii', $nama, $alamat, $kota, $provinsi, $kontak, $email, $lat, $lng, $radius, $id);
+}
+
+if ($stmt->execute()) {
+    $_SESSION['flash_message'] = "Data perusahaan berhasil diperbarui.";
+} else {
+    $_SESSION['flash_message'] = "Gagal memperbarui data perusahaan.";
+}
+$stmt->close();
+
+header("Location: perusahaan.php");
+exit;

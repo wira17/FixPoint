@@ -44,7 +44,7 @@ if (isset($_GET['aksi'], $_GET['id'])) {
   }
 }
 
-// === Ambil data pengajuan cuti ===
+// === Ambil data pengajuan cuti (gunakan GROUP_CONCAT untuk daftar tanggal) ===
 $sqlPengajuan = "
   SELECT p.*, u.nama AS nama_karyawan, mc.nama_cuti, d.nama AS nama_delegasi,
          GROUP_CONCAT(DATE_FORMAT(pc.tanggal,'%d-%m-%Y') ORDER BY pc.tanggal SEPARATOR ', ') AS tanggal_cuti
@@ -135,7 +135,7 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
                             <td><?= $no++ ?></td>
                             <td><?= htmlspecialchars($row['nama_karyawan']) ?></td>
                             <td><?= htmlspecialchars($row['nama_cuti']) ?></td>
-                            <td><?= htmlspecialchars($row['tanggal_cuti']) ?></td>
+                            <td><?= htmlspecialchars($row['tanggal_cuti'] ?? '-') ?></td>
                             <td><?= htmlspecialchars($row['nama_delegasi'] ?? '-') ?></td>
                             <td><?= htmlspecialchars($row['alasan']) ?></td>
                             <td>
@@ -150,15 +150,18 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
                               <?php endif; ?>
                             </td>
                             <td>
+                              <!-- Tombol Lihat -->
+                              <button class="btn btn-sm btn-info lihatDetail" 
+                                      data-id="<?= $row['id'] ?>">
+                                <i class="fas fa-eye"></i>
+                              </button>
                               <?php if ($row['status'] == "Menunggu Atasan"): ?>
                                 <a href="data_cuti.php?aksi=acc&id=<?= $row['id'] ?>" 
                                    class="btn btn-sm btn-success"
-                                   onclick="return confirm('Yakin ACC cuti ini?')"><i class="fas fa-check"></i> ACC</a>
+                                   onclick="return confirm('Yakin ACC cuti ini?')"><i class="fas fa-check"></i></a>
                                 <a href="data_cuti.php?aksi=tolak&id=<?= $row['id'] ?>" 
                                    class="btn btn-sm btn-danger"
-                                   onclick="return confirm('Yakin Tolak cuti ini?')"><i class="fas fa-times"></i> Tolak</a>
-                              <?php else: ?>
-                                <em>-</em>
+                                   onclick="return confirm('Yakin Tolak cuti ini?')"><i class="fas fa-times"></i></a>
                               <?php endif; ?>
                             </td>
                           </tr>
@@ -191,7 +194,7 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
                             <td><?= $no++ ?></td>
                             <td><?= htmlspecialchars($row['nama_karyawan']) ?></td>
                             <td><?= htmlspecialchars($row['nama_cuti']) ?></td>
-                            <td><?= htmlspecialchars($row['tanggal_cuti']) ?></td>
+                            <td><?= htmlspecialchars($row['tanggal_cuti'] ?? '-') ?></td>
                             <td><?= htmlspecialchars($row['status']) ?></td>
                           </tr>
                         <?php endif; endwhile; ?>
@@ -210,6 +213,21 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
   </div>
 </div>
 
+<!-- Modal Detail -->
+<div class="modal fade" id="modalDetail" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title">Detail Pengajuan Cuti</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body" id="detailContent">
+        <p class="text-center">Memuat data...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- JS -->
 <script src="assets/modules/jquery.min.js"></script>
 <script src="assets/modules/popper.js"></script>
@@ -224,6 +242,19 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
     setTimeout(function() {
       $("#flashMsg").fadeOut("slow");
     }, 3500);
+
+    // Klik lihat detail
+    $(".lihatDetail").on("click", function(){
+      var id = $(this).data("id");
+      $("#detailContent").html("<p class='text-center'>⏳ Memuat data...</p>");
+      $("#modalDetail").modal("show");
+
+      $.get("detail_cuti.php", {id:id}, function(data){
+        $("#detailContent").html(data);
+      }).fail(function(){
+        $("#detailContent").html("<p class='text-danger text-center'>Gagal memuat data.</p>");
+      });
+    });
   });
 </script>
 

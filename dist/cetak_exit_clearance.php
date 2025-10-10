@@ -78,7 +78,7 @@ h3 { background-color: #007BFF; color: #fff; padding: 6px 10px; font-size: 12px;
 
 <h3>Pengembalian Aset</h3>
 <table>
-<tr><th>No</th><th>Jenis Aset</th><th>Keterangan</th><th>Status</th><th>Tanda Tangan Penerima</th></tr>';
+<tr><th>No</th><th>Jenis Aset</th><th>Keterangan</th><th>Status</th><th>Penerima</th></tr>';
 $no = 1;
 foreach($aset as $a){
     $html .= '<tr>

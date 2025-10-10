@@ -51,24 +51,35 @@ while ($row = mysqli_fetch_assoc($result)) {
       <a href="dashboard.php">FP</a>
     </div>
 
-    <!-- FORM CARI MENU -->
-    <div class="p-3">
-      <input type="text" class="form-control form-control-sm" id="searchMenu" placeholder="Cari menu...">
-    </div>
+   <div class="p-3">
+  <input type="text" class="form-control form-control-sm" id="searchMenu" placeholder="Cari menu...">
+</div>
 
-    <ul class="sidebar-menu" id="menuList">
-      <!-- DASHBOARD -->
-      <li class="menu-header">DASHBOARD</li>
-      <li class="dropdown">
-        <a href="#" class="nav-link has-dropdown"><i class="fas fa-fire"></i> <span>DASHBOARD</span></a>
-        <ul class="dropdown-menu">
-          <li>
-            <a class="nav-link" href="dashboard.php">
-              <i class="fas fa-tachometer-alt"></i> <span>General Dashboard</span>
-            </a>
-          </li>
-        </ul>
+<ul class="sidebar-menu" id="menuList">
+  <!-- DASHBOARD -->
+  <li class="menu-header">DASHBOARD</li>
+  <li class="dropdown">
+    <a href="#" class="nav-link has-dropdown">
+      <i class="fas fa-fire"></i> <span>DASHBOARD</span>
+    </a>
+    <ul class="dropdown-menu">
+      <?php if (in_array('dashboard.php', $allowed_files)): ?>
+      <li>
+        <a class="nav-link" href="dashboard.php">
+          <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
+        </a>
       </li>
+      <?php endif; ?>
+
+      <?php if (in_array('dashboard2.php', $allowed_files)): ?>
+      <li>
+        <a class="nav-link" href="dashboard2.php">
+          <i class="fas fa-tachometer-alt"></i> <span>Dashboard Direktur</span>
+        </a>
+      </li>
+      <?php endif; ?>
+    </ul>
+  </li>
 
  <!-- IT DEPARTEMEN -->
 <li class="menu-header">IT DEPARTEMEN</li>
@@ -184,6 +195,217 @@ while ($row = mysqli_fetch_assoc($result)) {
 </li>
 
 
+<!-- SARPRAS -->
+<li class="menu-header">SARPRAS</li>
+<li class="dropdown">
+  <a href="#" class="nav-link has-dropdown">
+    <i class="fa fa-wrench"></i> <span>SARPRAS</span>
+  </a>
+
+  <ul class="dropdown-menu">
+
+    <?php if (in_array('order_tiket_sarpras.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="order_tiket_sarpras.php">
+        <i class="fas fa-ticket-alt"></i> <span>Order Tiket Sarpras</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('data_tiket_sarpras.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_tiket_sarpras.php">
+        <i class="fas fa-clipboard-list"></i> <span>Data Tiket</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('handling_time_sarpras.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="handling_time_sarpras.php">
+        <i class="fas fa-stopwatch"></i> <span>Handling Time</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('data_barang_ac.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_barang_ac.php">
+        <i class="fas fa-boxes"></i> <span>Barang Sarpras</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+  <?php if (in_array('maintanance_rutin_sarpras.php', $allowed_files)): ?>
+<li>
+  <a class="nav-link" href="maintanance_rutin_sarpras.php">
+    <i class="fas fa-cogs"></i> <span>Maintenance</span>
+  </a>
+</li>
+<?php endif; ?>
+
+
+  </ul>
+</li>
+
+
+<!-- KOMITE KEPERAWATAN -->
+<li class="menu-header">KOMITE KEPERAWATAN</li>
+<li class="dropdown">
+  <a href="#" class="nav-link has-dropdown">
+    <i class="fas fa-user-md"></i> <span>KOMKEP</span>
+  </a>
+  <ul class="dropdown-menu">
+
+     <?php if (in_array('kredensial.php', $allowed_files)): ?>
+    <li class="dropdown">
+      <a href="#" class="nav-link has-dropdown">
+        <i class="fas fa-chart-bar"></i> <span>Kredensial</span>
+      </a>
+      <ul class="dropdown-menu">
+
+        <?php if (in_array('praktek.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="praktek.php">
+            <i class="fas fa-briefcase-medical"></i> <span>Praktek</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+        <?php if (in_array('wawancara.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="wawancara.php">
+            <i class="fas fa-comments"></i> <span>Wawancara</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+        <?php if (in_array('ujian_tertulis.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="ujian_tertulis.php">
+            <i class="fas fa-edit"></i> <span>Tertulis</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+      </ul>
+    </li>
+    <?php endif; ?>
+
+
+   
+  <?php if (in_array('hasil_kredensial.php', $allowed_files)): ?>
+    <li class="dropdown">
+      <a href="#" class="nav-link has-dropdown">
+        <i class="fas fa-chart-bar"></i> <span>Hasil Kredensial</span>
+      </a>
+      <ul class="dropdown-menu">
+
+        <?php if (in_array('hasil_praktek.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="hasil_praktek.php">
+            <i class="fas fa-briefcase-medical"></i> <span>Praktek</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+        <?php if (in_array('hasil_wawancara.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="hasil_wawancara.php">
+            <i class="fas fa-comments"></i> <span>Wawancara</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+        <?php if (in_array('hasil_ujian.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="hasil_ujian.php">
+            <i class="fas fa-edit"></i> <span>Tertulis</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+      </ul>
+    </li>
+    <?php endif; ?>
+
+
+    <?php if (in_array('kegiatan_komite.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="kegiatan_komite.php">
+        <i class="fas fa-calendar-alt"></i> <span>Kegiatan Komite</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+   
+
+    <?php if (in_array('laporan_komite.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="laporan_komite.php">
+        <i class="fas fa-file-alt"></i> <span>Laporan Komite</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+
+       <?php if (in_array('judul.php', $allowed_files)): ?>
+    <li class="dropdown">
+      <a href="#" class="nav-link has-dropdown">
+        <i class="fas fa-chart-bar"></i> <span>Master Data</span>
+      </a>
+      <ul class="dropdown-menu">
+
+        <?php if (in_array('judul_soal.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="judul_soal.php">
+            <i class="fas fa-briefcase-medical"></i> <span>Judul Soal</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+        <?php if (in_array('input_soal.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="input_soal.php">
+            <i class="fas fa-comments"></i> <span>Input Soal</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+           <?php if (in_array('data_anggota_komite.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="data_anggota_komite.php">
+            <i class="fas fa-comments"></i> <span>Anggota Komite</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+    <?php if (in_array('jenis_kredensial.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="jenis_kredensial.php">
+            <i class="fas fa-comments"></i> <span>Jenis Kredensial</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+         <?php if (in_array('jabatan_komite.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="jabatan_komite.php">
+            <i class="fas fa-comments"></i> <span>Jabatan Komite</span>
+          </a>
+        </li>
+        <?php endif; ?>
+    
+      </ul>
+    </li>
+    <?php endif; ?>
+
+
+  </ul>
+</li>
+
+
+  
 
 
 <!-- INDIKATOR MUTU -->
@@ -546,42 +768,29 @@ while ($row = mysqli_fetch_assoc($result)) {
   <a href="#" class="nav-link has-dropdown"><i class="fas fa-users-cog"></i> <span>HR / SDM</span></a>
   <ul class="dropdown-menu">
 
+    <?php if (in_array('data_karyawan.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_karyawan.php">
+        <i class="fas fa-id-badge"></i> <span>Data Karyawan</span>
+      </a>
+    </li>
+    <?php endif; ?>
 
-<?php if (in_array('data_karyawan.php', $allowed_files)): ?>
-<li>
-  <a class="nav-link" href="data_karyawan.php">
-    <i class="fas fa-users"></i> <span>Data Karyawan</span>
-  </a>
-</li>
-<?php endif; ?>
+    <?php if (in_array('exit_clearance.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="exit_clearance.php">
+        <i class="fas fa-sign-out-alt"></i> <span>Exit Clearance</span>
+      </a>
+    </li>
+    <?php endif; ?>
 
-<?php if (in_array('data_karyawan2.php', $allowed_files)): ?>
-<li>
-  <a class="nav-link" href="data_karyawan2.php">
-    <i class="fas fa-users"></i> <span>Data Karyawan 2</span>
-  </a>
-</li>
-<?php endif; ?>
-
-
-<?php if (in_array('exit_clearance.php', $allowed_files)): ?>
-<li>
-  <a class="nav-link" href="exit_clearance.php">
-    <i class="fas fa-users"></i> <span>Exit Clearance</span>
-  </a>
-</li>
-<?php endif; ?>
-
-  <?php if (in_array('rekap_catatan_kerja.php', $allowed_files)): ?>
-<li>
-  <a class="nav-link" href="rekap_catatan_kerja.php">
-    <i class="fas fa-users"></i> <span>Rekap Kerja</span>
-  </a>
-</li>
-<?php endif; ?>
-
-
-   
+    <?php if (in_array('rekap_catatan_kerja.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="rekap_catatan_kerja.php">
+        <i class="fas fa-clipboard-list"></i> <span>Rekap Kerja</span>
+      </a>
+    </li>
+    <?php endif; ?>
 
     <?php if (in_array('master_cuti.php', $allowed_files)): ?>
     <li>
@@ -615,31 +824,31 @@ while ($row = mysqli_fetch_assoc($result)) {
     </li>
     <?php endif; ?>
 
-     <?php if (in_array('data_cuti_delegasi.php', $allowed_files)): ?>
+    <?php if (in_array('data_cuti_delegasi.php', $allowed_files)): ?>
     <li>
       <a class="nav-link" href="data_cuti_delegasi.php">
-        <i class="fas fa-database"></i> <span>Acc Cuti Delegasi</span>
+        <i class="fas fa-user-friends"></i> <span>Acc Cuti Delegasi</span>
       </a>
     </li>
     <?php endif; ?>
 
-       <?php if (in_array('data_cuti_atasan.php', $allowed_files)): ?>
+    <?php if (in_array('data_cuti_atasan.php', $allowed_files)): ?>
     <li>
       <a class="nav-link" href="data_cuti_atasan.php">
-        <i class="fas fa-database"></i> <span>Acc Cuti Atasan</span>
+        <i class="fas fa-user-tie"></i> <span>Acc Cuti Atasan</span>
       </a>
     </li>
     <?php endif; ?>
 
-          <?php if (in_array('data_cuti_hrd.php', $allowed_files)): ?>
+    <?php if (in_array('data_cuti_hrd.php', $allowed_files)): ?>
     <li>
       <a class="nav-link" href="data_cuti_hrd.php">
-        <i class="fas fa-database"></i> <span>Acc Cuti HRD</span>
+        <i class="fas fa-user-shield"></i> <span>Acc Cuti HRD</span>
       </a>
     </li>
     <?php endif; ?>
 
-     <?php if (in_array('izin_keluar.php', $allowed_files)): ?>
+    <?php if (in_array('izin_keluar.php', $allowed_files)): ?>
     <li>
       <a class="nav-link" href="izin_keluar.php">
         <i class="fas fa-door-open"></i> <span>Izin Keluar</span>
@@ -647,10 +856,10 @@ while ($row = mysqli_fetch_assoc($result)) {
     </li>
     <?php endif; ?>
 
-     <?php if (in_array('data_izin_keluar.php', $allowed_files)): ?>
+    <?php if (in_array('data_izin_keluar.php', $allowed_files)): ?>
     <li>
       <a class="nav-link" href="data_izin_keluar.php">
-        <i class="fas fa-door-open"></i> <span>Data Izin Keluar</span>
+        <i class="fas fa-clipboard-check"></i> <span>Data Izin Keluar</span>
       </a>
     </li>
     <?php endif; ?>
@@ -658,15 +867,74 @@ while ($row = mysqli_fetch_assoc($result)) {
     <?php if (in_array('acc_keluar_atasan.php', $allowed_files)): ?>
     <li>
       <a class="nav-link" href="acc_keluar_atasan.php">
-        <i class="fas fa-user-check"></i> <span>ACC Keluar Atasan</span>
+        <i class="fas fa-user-tie"></i> <span>ACC Keluar Atasan</span>
       </a>
     </li>
     <?php endif; ?>
 
-        <?php if (in_array('acc_keluar_sdm.php', $allowed_files)): ?>
+    <?php if (in_array('acc_keluar_sdm.php', $allowed_files)): ?>
     <li>
       <a class="nav-link" href="acc_keluar_sdm.php">
         <i class="fas fa-user-check"></i> <span>ACC Keluar SDM</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+  </ul>
+</li>
+
+
+
+<!-- JADWAL -->
+<li class="menu-header">JADWAL</li>
+<li class="dropdown">
+  <a href="#" class="nav-link has-dropdown"><i class="fas fa-clock"></i> <span>JADWAL</span></a>
+  <ul class="dropdown-menu">
+
+        <?php if (in_array('absensi.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="absensi.php">
+        <i class="fas fa-user-check"></i> <span>Absensi</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('data_absensi.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_absensi.php">
+        <i class="fas fa-user-check"></i> <span>Data Absensi</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('jadwal_dinas.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="jadwal_dinas.php">
+        <i class="fas fa-calendar-plus"></i> <span>Input Jadwal</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+     <?php if (in_array('ganti_jadwal_dinas.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="ganti_jadwal_dinas.php">
+        <i class="fas fa-calendar-plus"></i> <span>Ganti Jadwal</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('data_jadwal.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_jadwal.php">
+        <i class="fas fa-calendar-alt"></i> <span>Data Jadwal</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('jam_kerja.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="jam_kerja.php">
+        <i class="fas fa-business-time"></i> <span>Jam Kerja</span>
       </a>
     </li>
     <?php endif; ?>

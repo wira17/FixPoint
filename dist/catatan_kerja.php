@@ -117,11 +117,47 @@ $data_catatan = $stmt_data->get_result();
   <link rel="stylesheet" href="assets/modules/fontawesome/css/all.min.css" />
   <link rel="stylesheet" href="assets/css/style.css" />
   <link rel="stylesheet" href="assets/css/components.css" />
-  <style>
-    .catatan-table { font-size: 13px; }
-    .catatan-table th, .catatan-table td { padding: 8px 10px; vertical-align: middle; }
-    .pagination { justify-content: center; }
-  </style>
+ <style>
+  .catatan-table { font-size: 13px; }
+  .catatan-table th, .catatan-table td { padding: 8px 10px; vertical-align: middle; }
+
+  /* Responsif penuh */
+  @media (max-width: 992px) {
+    .catatan-table th, .catatan-table td {
+      white-space: normal;
+    }
+  }
+
+  /* Kolom aksi biar tetap rapi */
+  .catatan-table td .d-flex {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .catatan-table td button,
+  .catatan-table td a {
+    min-width: 75px;
+    font-size: 12px;
+  }
+
+  /* Agar isi teks panjang tidak melebar */
+  .catatan-table td:nth-child(3) {
+    max-width: 450px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  .pagination { justify-content: center; }
+
+  /* Scroll horizontal aktif bila tabel melebar di layar kecil */
+  .table-responsive {
+    overflow-x: auto;
+  }
+</style>
+
 </head>
 <body>
 <div id="app">
@@ -146,52 +182,63 @@ $data_catatan = $stmt_data->get_result();
                 <label class="mr-2">Tanggal Sampai:</label>
                 <input type="date" name="tgl_sampai" value="<?= htmlspecialchars($tgl_sampai) ?>" class="form-control mr-2">
                 <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Cari judul/isi catatan" class="form-control mr-2">
-                <button type="submit" class="btn btn-primary">Filter</button>
+              <button type="submit" class="btn btn-primary">Filter</button>
+<a href="catatan_kerja_saya.php" class="btn btn-secondary ml-2">Reset</a>
+<a href="print_catatan.php?tgl_dari=<?= urlencode($tgl_dari) ?>&tgl_sampai=<?= urlencode($tgl_sampai) ?>&search=<?= urlencode($search) ?>" target="_blank" class="btn btn-success ml-2">
+  <i class="fas fa-print"></i> Print
+</a>
+
                 <a href="catatan_kerja_saya.php" class="btn btn-secondary ml-2">Reset</a>
               </form>
 
-              <div class="table-responsive">
-                <table class="table table-bordered catatan-table">
-                  <thead class="thead-dark">
-                    <tr class="text-center">
-                      <th>No</th>
-                      <th>Judul</th>
-                      <th>Isi</th>
-                      <th>Tanggal</th>
-                      <th>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php if ($data_catatan && $data_catatan->num_rows > 0): ?>
-                      <?php $no = $offset + 1; while ($catatan = $data_catatan->fetch_assoc()) : ?>
-                        <tr>
-                          <td class="text-center"><?= $no++ ?></td>
-                          <td><?= htmlspecialchars($catatan['judul']) ?></td>
-                          <td><?= nl2br(htmlspecialchars($catatan['isi'])) ?></td>
-                          <td class="text-center"><?= date('d-m-Y H:i', strtotime($catatan['tanggal'])) ?></td>
-                          <td class="text-center">
-                            <button class="btn btn-sm btn-warning" 
-                                    data-toggle="modal" 
-                                    data-target="#editModal" 
-                                    data-id="<?= $catatan['id'] ?>" 
-                                    data-judul="<?= htmlspecialchars($catatan['judul'], ENT_QUOTES) ?>" 
-                                    data-isi="<?= htmlspecialchars($catatan['isi'], ENT_QUOTES) ?>">
-                              <i class="fas fa-edit"></i> Edit
-                            </button>
-                            <a href="?hapus_id=<?= $catatan['id'] ?>" onclick="return confirm('Yakin ingin menghapus catatan ini?')" class="btn btn-sm btn-danger">
-                              <i class="fas fa-trash"></i> Hapus
-                            </a>
-                          </td>
-                        </tr>
-                      <?php endwhile; ?>
-                    <?php else: ?>
-                      <tr>
-                        <td colspan="5" class="text-center">Tidak ada catatan kerja.</td>
-                      </tr>
-                    <?php endif; ?>
-                  </tbody>
-                </table>
+             <!-- BAGIAN TABLE DALAM FILE YANG KAMU KIRIM -->
+<div class="table-responsive">
+  <table class="table table-bordered catatan-table">
+    <thead class="thead-dark">
+      <tr class="text-center">
+        <th style="width:5%;">No</th>
+        <th style="width:20%;">Judul</th>
+        <th style="width:45%;">Isi</th>
+        <th style="width:15%;">Tanggal</th>
+        <th style="width:15%;">Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php if ($data_catatan && $data_catatan->num_rows > 0): ?>
+        <?php $no = $offset + 1; while ($catatan = $data_catatan->fetch_assoc()) : ?>
+          <tr>
+            <td class="text-center"><?= $no++ ?></td>
+            <td><?= htmlspecialchars($catatan['judul']) ?></td>
+            <td style="white-space: pre-wrap; word-break: break-word;"><?= nl2br(htmlspecialchars($catatan['isi'])) ?></td>
+            <td class="text-center"><?= date('d-m-Y H:i', strtotime($catatan['tanggal'])) ?></td>
+            <td class="text-center">
+              <div class="d-flex justify-content-center flex-wrap gap-1">
+                <button class="btn btn-sm btn-warning m-1"
+                        data-toggle="modal"
+                        data-target="#editModal"
+                        data-id="<?= $catatan['id'] ?>"
+                        data-judul="<?= htmlspecialchars($catatan['judul'], ENT_QUOTES) ?>"
+                        data-isi="<?= htmlspecialchars($catatan['isi'], ENT_QUOTES) ?>">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <a href="?hapus_id=<?= $catatan['id'] ?>"
+                   onclick="return confirm('Yakin ingin menghapus catatan ini?')"
+                   class="btn btn-sm btn-danger m-1">
+                  <i class="fas fa-trash"></i> Hapus
+                </a>
               </div>
+            </td>
+          </tr>
+        <?php endwhile; ?>
+      <?php else: ?>
+        <tr>
+          <td colspan="5" class="text-center">Tidak ada catatan kerja.</td>
+        </tr>
+      <?php endif; ?>
+    </tbody>
+  </table>
+</div>
+
 
               <!-- Pagination -->
               <nav>
