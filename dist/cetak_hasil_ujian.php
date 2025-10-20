@@ -6,8 +6,8 @@ date_default_timezone_set('Asia/Jakarta');
 
 function tgl_indo($tanggal, $jam = false) {
     $bulan = [
-        1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-             'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        1 => 'Januari','Februari','Maret','April','Mei','Juni',
+             'Juli','Agustus','September','Oktober','November','Desember'
     ];
     $tgl = date('d', strtotime($tanggal));
     $bln = $bulan[(int)date('m', strtotime($tanggal))];
@@ -16,7 +16,6 @@ function tgl_indo($tanggal, $jam = false) {
     return "$tgl $bln $thn$waktu";
 }
 
-// Validasi parameter
 if (!isset($_GET['user_id']) || !isset($_GET['judul_soal_id'])) {
     die('<h3 style="color:red;text-align:center;">❌ Parameter tidak lengkap.</h3>');
 }
@@ -24,21 +23,21 @@ if (!isset($_GET['user_id']) || !isset($_GET['judul_soal_id'])) {
 $user_id = intval($_GET['user_id']);
 $judul_soal_id = intval($_GET['judul_soal_id']);
 
-// === Ambil Data Peserta ===
+// Ambil data peserta
 $qUser = mysqli_query($conn, "SELECT nama, email FROM users WHERE id='$user_id'");
 if (!$qUser || mysqli_num_rows($qUser) == 0) {
     die('<h3 style="color:red;text-align:center;">❌ Data user tidak ditemukan.</h3>');
 }
 $user = mysqli_fetch_assoc($qUser);
 
-// === Ambil Data Judul Soal ===
+// Ambil judul soal
 $qJudul = mysqli_query($conn, "SELECT judul_soal FROM judul_soal WHERE id='$judul_soal_id'");
 if (!$qJudul || mysqli_num_rows($qJudul) == 0) {
     die('<h3 style="color:red;text-align:center;">❌ Judul soal tidak ditemukan.</h3>');
 }
 $judul = mysqli_fetch_assoc($qJudul);
 
-// === Ambil Data Jawaban ===
+// Ambil jawaban peserta
 $qJawaban = mysqli_query($conn, "
     SELECT s.soal, s.pilihan_a, s.pilihan_b, s.pilihan_c, s.pilihan_d,
            s.jawaban_benar, j.jawaban, j.tanggal_ujian
@@ -51,11 +50,10 @@ if (!$qJawaban || mysqli_num_rows($qJawaban) == 0) {
     die('<h3 style="color:orange;text-align:center;">⚠️ Belum ada jawaban tersimpan untuk ujian ini.</h3>');
 }
 
-// === Ambil Data Instansi (tabel perusahaan, sama seperti file berita acara) ===
+// Data instansi
 $q_perusahaan = mysqli_query($conn, "SELECT * FROM perusahaan LIMIT 1");
 $perusahaan = mysqli_fetch_assoc($q_perusahaan);
 
-// Path logo + base64
 $logoPath = realpath('dist/images/logo/' . ($perusahaan['logo'] ?? ''));
 $logoBase64 = '';
 if ($logoPath && file_exists($logoPath)) {
@@ -64,7 +62,7 @@ if ($logoPath && file_exists($logoPath)) {
     $logoBase64 = 'data:image/' . $logoType . ';base64,' . base64_encode($logoData);
 }
 
-// === Hitung Nilai ===
+// Hitung nilai
 $total = 0;
 $benar = 0;
 $tanggalUjian = '';
@@ -77,8 +75,11 @@ while ($row = mysqli_fetch_assoc($qJawaban)) {
     $status = (strtolower(trim($row['jawaban'])) == strtolower(trim($row['jawaban_benar']))) ? 'Benar' : 'Salah';
     if ($status == 'Benar') $benar++;
 
+    // Highlight baris jawaban salah
+    $bgcolor = ($status == 'Salah') ? 'background-color:#f8d7da;' : '';
+
     $tbody .= "
-    <tr>
+    <tr style='$bgcolor'>
         <td style='text-align:center;'>$no</td>
         <td>{$row['soal']}</td>
         <td style='text-align:center;'><b>" . strtoupper($row['jawaban']) . "</b></td>
@@ -89,9 +90,11 @@ while ($row = mysqli_fetch_assoc($qJawaban)) {
 }
 
 $nilai = $total > 0 ? round(($benar / $total) * 100, 2) : 0;
+$statusUjian = ($nilai >= 75) ? 'Lulus' : 'Remedial';
+$statusColor = ($nilai >= 75) ? 'green' : 'red';
 $tglUjian = tgl_indo($tanggalUjian, true);
 
-// === HTML TEMPLATE ===
+// HTML
 $html = '
 <style>
   body { font-family: Arial, sans-serif; font-size: 12px; color: #000; }
@@ -104,6 +107,7 @@ $html = '
   table { border-collapse: collapse; width: 100%; }
   th, td { border: 1px solid black; padding: 5px; }
   th { background-color: #f2f2f2; }
+  .status-ujian { font-weight: bold; color: '.$statusColor.'; }
   .footer { margin-top: 30px; text-align: right; font-size: 11px; }
 </style>
 
@@ -125,7 +129,7 @@ $html = '
   <tr><td>Tanggal Ujian</td><td>: '.$tglUjian.' WIB</td></tr>
   <tr><td>Jumlah Soal</td><td>: '.$total.'</td></tr>
   <tr><td>Benar</td><td>: '.$benar.'</td></tr>
-  <tr><td>Nilai Akhir</td><td><b>'.$nilai.'%</b></td></tr>
+  <tr><td>Nilai Akhir</td><td><b>'.$nilai.'%</b> <span class="status-ujian">('.$statusUjian.')</span></td></tr>
 </table>
 
 <h4 style="margin-top:20px;">Detail Jawaban:</h4>
@@ -147,13 +151,13 @@ Dicetak pada: '.tgl_indo(date("Y-m-d H:i:s"), true).'
 </div>
 ';
 
-// === Generate PDF ===
+// Generate PDF
 $dompdf = new Dompdf();
 $dompdf->loadHtml($html);
 $dompdf->setPaper('A4', 'portrait');
 $dompdf->render();
 
-// === Watermark ===
+// Watermark
 $canvas = $dompdf->getCanvas();
 $canvas->set_opacity(0.07);
 $watermarkPath = 'assets/watermark.jpg';
@@ -165,6 +169,6 @@ if (file_exists($watermarkPath)) {
     $canvas->image($watermarkPath, $x, $y, $width, $height);
 }
 
-// === Output ke browser ===
+// Output ke browser
 $dompdf->stream('hasil_ujian_' . $user['nama'] . '.pdf', ['Attachment' => false]);
 ?>

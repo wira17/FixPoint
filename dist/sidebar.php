@@ -249,6 +249,77 @@ while ($row = mysqli_fetch_assoc($result)) {
 </li>
 
 
+
+<!-- SIMRS -->
+<li class="menu-header">LAPORAN SIMRS</li>
+<li class="dropdown">
+  <a href="#" class="nav-link has-dropdown">
+    <i class="fas fa-hospital"></i> <span>LAPORAN SIMRS</span>
+  </a>
+  <ul class="dropdown-menu">
+
+    <?php if (in_array('semua_antrian.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="semua_antrian.php">
+        <i class="fas fa-chart-line"></i> <span>% Semua Antrian</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('mjkn_antrian.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="mjkn_antrian.php">
+        <i class="fas fa-mobile-alt"></i> <span>% Antrian JKN</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('poli_antrian.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="poli_antrian.php">
+        <i class="fas fa-user-md"></i> <span>% Antrian Poli</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('erm.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="erm.php">
+        <i class="fas fa-file-medical"></i> <span>E-RM</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('satu_sehat.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="satu_sehat.php">
+        <i class="fas fa-heartbeat"></i> <span>Satu Sehat</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+      <?php if (in_array('progres_kerja.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="progres_kerja.php">
+        <i class="fas fa-heartbeat"></i> <span>Progres Kerja</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+       <?php if (in_array('slide_pelaporan.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="slide_pelaporan.php">
+        <i class="fas fa-heartbeat"></i> <span>Slide Laporan</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+  </ul>
+</li>
+
+
+
+
 <!-- KOMITE KEPERAWATAN -->
 <li class="menu-header">KOMITE KEPERAWATAN</li>
 <li class="dropdown">
@@ -756,6 +827,22 @@ while ($row = mysqli_fetch_assoc($result)) {
     </li>
     <?php endif; ?>
 
+         <?php if (in_array('input_kpi.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="input_kpi.php">
+        <i class="fas fa-file-archive"></i> <span>Inpu KPI</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+      <?php if (in_array('master_kpi.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="master_kpi.php">
+        <i class="fas fa-file-archive"></i> <span>Master KPI</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
   </ul>
 </li>
 
@@ -941,6 +1028,8 @@ while ($row = mysqli_fetch_assoc($result)) {
 
   </ul>
 </li>
+
+
 
 
   <!-- REKRUITMENT -->
@@ -1151,6 +1240,14 @@ while ($row = mysqli_fetch_assoc($result)) {
       <li>
         <a class="nav-link" href="jabatan.php">
           <i class="fas fa-briefcase"></i> <span>Jabatan</span>
+        </a>
+      </li>
+    <?php endif; ?>
+
+     <?php if (in_array('master_poliklinik.php', $allowed_files)): ?>
+      <li>
+        <a class="nav-link" href="master_poliklinik.php">
+          <i class="fas fa-briefcase"></i> <span>Poliklinik</span>
         </a>
       </li>
     <?php endif; ?>

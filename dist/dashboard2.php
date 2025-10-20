@@ -393,6 +393,18 @@ if ($resultLB) {
 </div>
 
 
+<div class="col-lg-3 col-md-6 col-sm-6 col-12">
+  <div class="card card-statistic-1" data-toggle="modal" data-target="#modalSemuaAntrian">
+    <div class="card-icon bg-primary"><i class="fas fa-snowflake"></i></div>
+    <div class="card-wrap">
+      <div class="card-header"><h4>Bridging BPJS</h4></div>
+      <div class="card-body">% Semua Antrian</div>
+    </div>
+  </div>
+</div>
+
+
+
 
   </section>
 </div>
@@ -632,6 +644,94 @@ if ($resultLB) {
     </div>
   </div>
 </div>
+
+<!-- Modal Semua Antrian -->
+<div class="modal fade" id="modalSemuaAntrian" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-xxl" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="fas fa-chart-line"></i> Data % Semua Antrian</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+
+      <div class="modal-body table-responsive">
+        <table class="table table-bordered table-sm table-striped text-center">
+          <thead class="thead-light">
+            <tr>
+              <th style="width:50px;">No</th>
+
+              <th>Bulan</th>
+
+              <th>Tahun</th>
+              <th>Jumlah SEP</th>
+              <th>Jumlah Antrian</th>
+              <th>Jumlah MJKN</th>
+              <th>% All Pemanfaatan</th>
+            </tr>
+          </thead>
+          <tbody>
+          <?php
+          // Fungsi ubah angka bulan ke nama bulan Indonesia
+          function namaBulan($angka) {
+              $bulan = [
+                  1 => 'Januari',
+                  2 => 'Februari',
+                  3 => 'Maret',
+                  4 => 'April',
+                  5 => 'Mei',
+                  6 => 'Juni',
+                  7 => 'Juli',
+                  8 => 'Agustus',
+                  9 => 'September',
+                  10 => 'Oktober',
+                  11 => 'November',
+                  12 => 'Desember'
+              ];
+              return isset($bulan[$angka]) ? $bulan[$angka] : '-';
+          }
+
+          // Urut berdasarkan tahun ASC, lalu bulan ASC (Januari dulu)
+          $query = mysqli_query($conn, "SELECT * FROM semua_antrian ORDER BY tahun ASC, bulan ASC");
+
+          if (mysqli_num_rows($query) > 0):
+              $no = 1;
+              while ($row = mysqli_fetch_assoc($query)):
+          ?>
+            <tr>
+              <td><?= $no++; ?></td>
+
+              <td><?= namaBulan((int)$row['bulan']); ?></td>
+
+              <td><?= htmlspecialchars($row['tahun']); ?></td>
+              <td><?= number_format($row['jumlah_sep']); ?></td>
+              <td><?= number_format($row['jumlah_antri']); ?></td>
+              <td><?= number_format($row['jumlah_mjkn']); ?></td>
+              <td class="font-weight-bold text-success"><?= number_format($row['persen_all'], 2); ?>%</td>
+            </tr>
+          <?php
+              endwhile;
+          else:
+          ?>
+            <tr><td colspan="7">Belum ada data semua antrian</td></tr>
+          <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
+          <i class="fas fa-times"></i> Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
 
 
 <!-- Modal Surat Masuk -->

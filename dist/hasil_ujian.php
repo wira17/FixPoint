@@ -12,8 +12,8 @@ $query = "SELECT 1 FROM akses_menu
           WHERE akses_menu.user_id = '$user_id' AND menu.file_menu = '$current_file'";
 $result = mysqli_query($conn, $query);
 if (mysqli_num_rows($result) == 0) {
-  echo "<script>alert('Anda tidak memiliki akses ke halaman ini.'); window.location.href='dashboard.php';</script>";
-  exit;
+    echo "<script>alert('Anda tidak memiliki akses ke halaman ini.'); window.location.href='dashboard.php';</script>";
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -27,6 +27,10 @@ if (mysqli_num_rows($result) == 0) {
   <link rel="stylesheet" href="assets/modules/fontawesome/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/components.css">
+
+  <style>
+    .table td, .table th { vertical-align: middle; }
+  </style>
 </head>
 
 <body>
@@ -46,7 +50,7 @@ if (mysqli_num_rows($result) == 0) {
 <?php
 // === MODE 1: DAFTAR UJIAN ===
 if (!isset($_GET['id'])) {
-  $qJudul = mysqli_query($conn, "SELECT * FROM judul_soal ORDER BY tanggal_buat DESC");
+    $qJudul = mysqli_query($conn, "SELECT * FROM judul_soal ORDER BY tanggal_buat DESC");
 ?>
   <div class="card">
     <div class="card-header bg-primary text-white">
@@ -69,7 +73,7 @@ if (!isset($_GET['id'])) {
             <?php
             $no = 1;
             while ($row = mysqli_fetch_assoc($qJudul)):
-              $jumlahPeserta = mysqli_num_rows(mysqli_query($conn, "SELECT DISTINCT user_id FROM jawaban_ujian WHERE judul_soal_id='{$row['id']}'"));
+                $jumlahPeserta = mysqli_num_rows(mysqli_query($conn, "SELECT DISTINCT user_id FROM jawaban_ujian WHERE judul_soal_id='{$row['id']}'"));
             ?>
             <tr>
               <td><?= $no++; ?></td>
@@ -79,7 +83,7 @@ if (!isset($_GET['id'])) {
               <td><?= $jumlahPeserta; ?> Peserta</td>
               <td>
                 <a href="hasil_ujian.php?id=<?= $row['id']; ?>" class="btn btn-info btn-sm">
-                  <i class="fas fa-print"></i> Lihat Peserta
+                  <i class="fas fa-eye"></i> Lihat Peserta
                 </a>
               </td>
             </tr>
@@ -94,25 +98,25 @@ if (!isset($_GET['id'])) {
 
 // === MODE 2: LIHAT PESERTA ===
 else {
-  $judul_soal_id = (int)$_GET['id'];
-  $qJudul = mysqli_query($conn, "SELECT * FROM judul_soal WHERE id='$judul_soal_id'");
-  if (mysqli_num_rows($qJudul) == 0) {
-    echo "<div class='alert alert-danger'>Judul soal tidak ditemukan.</div>";
-    exit;
-  }
-  $judul = mysqli_fetch_assoc($qJudul);
+    $judul_soal_id = (int)$_GET['id'];
+    $qJudul = mysqli_query($conn, "SELECT * FROM judul_soal WHERE id='$judul_soal_id'");
+    if (mysqli_num_rows($qJudul) == 0) {
+        echo "<div class='alert alert-danger'>Judul soal tidak ditemukan.</div>";
+        exit;
+    }
+    $judul = mysqli_fetch_assoc($qJudul);
 
-  $qPeserta = mysqli_query($conn, "
-    SELECT j.user_id AS id, 
-           COALESCE(u.nama, 'Tidak Diketahui') AS nama,
-           COALESCE(u.email, '-') AS email,
-           MAX(j.tanggal_ujian) AS tanggal_ujian
-    FROM jawaban_ujian j
-    LEFT JOIN users u ON j.user_id = u.id
-    WHERE j.judul_soal_id = '$judul_soal_id'
-    GROUP BY j.user_id
-    ORDER BY tanggal_ujian DESC
-  ");
+    $qPeserta = mysqli_query($conn, "
+        SELECT h.user_id AS id, 
+               COALESCE(u.nama, 'Tidak Diketahui') AS nama,
+               COALESCE(u.email, '-') AS email,
+               h.nilai,
+               h.tanggal_selesai AS tanggal_ujian
+        FROM hasil_ujian h
+        LEFT JOIN users u ON h.user_id = u.id
+        WHERE h.judul_soal_id = '$judul_soal_id'
+        ORDER BY tanggal_ujian DESC
+    ");
 ?>
   <div class="card">
     <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
@@ -128,25 +132,25 @@ else {
               <th>Nama Peserta</th>
               <th>Email</th>
               <th>Tanggal Ujian</th>
+              <th>Nilai (%)</th>
               <th>Aksi</th>
             </tr>
           </thead>
           <tbody>
-            <?php $no = 1;
-            while ($p = mysqli_fetch_assoc($qPeserta)): ?>
+            <?php $no = 1; while ($p = mysqli_fetch_assoc($qPeserta)): ?>
               <tr>
                 <td><?= $no++; ?></td>
                 <td><?= htmlspecialchars($p['nama']); ?></td>
                 <td><?= htmlspecialchars($p['email']); ?></td>
                 <td><?= date('d-m-Y H:i', strtotime($p['tanggal_ujian'])); ?></td>
+                <td><?= $p['nilai']; ?></td>
                 <td>
-               <a href="cetak_hasil_ujian.php?user_id=<?= $p['id']; ?>&judul_soal_id=<?= $judul_soal_id; ?>" 
-   target="_blank" 
-   class="btn btn-danger btn-sm" 
-   title="Cetak Hasil Ujian">
-   <i class="fas fa-file-pdf"></i> Cetak PDF
-</a>
-
+                  <a href="cetak_hasil_ujian.php?user_id=<?= $p['id']; ?>&judul_soal_id=<?= $judul_soal_id; ?>" 
+                     target="_blank" 
+                     class="btn btn-danger btn-sm" 
+                     title="Cetak Hasil Ujian">
+                     <i class="fas fa-file-pdf"></i> Cetak PDF
+                  </a>
                 </td>
               </tr>
             <?php endwhile; ?>
@@ -157,26 +161,10 @@ else {
   </div>
 <?php } ?>
 
-
-<!-- === MODAL DETAIL JAWABAN === -->
-<div class="modal fade" id="modalJawaban" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title"><i class="fas fa-file-pdf"></i> Hasil Jawaban Peserta</h5>
-        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-      </div>
-      <div class="modal-body" id="isiModalJawaban">
-        <div class="text-center text-muted py-4">
-          <i class="fas fa-spinner fa-spin fa-2x"></i> Memuat data...
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" id="btnCetakPDF" class="btn btn-danger"><i class="fas fa-file-pdf"></i> Cetak PDF</button>
-        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times"></i> Tutup</button>
-      </div>
-    </div>
-  </div>
+</div>
+</section>
+</div>
+</div>
 </div>
 
 <script src="assets/modules/jquery.min.js"></script>
@@ -186,33 +174,5 @@ else {
 <script src="assets/modules/moment.min.js"></script>
 <script src="assets/js/stisla.js"></script>
 <script src="assets/js/scripts.js"></script>
-<script src="assets/js/custom.js"></script>
-<script>
-$(document).ready(function(){
-  let currentUserId = null;
-  let currentJudulId = null;
-
-  // Tombol Cetak (lihat jawaban)
-  $('.lihatJawabanBtn').click(function(){
-    currentUserId = $(this).data('user');
-    currentJudulId = $(this).data('judul');
-
-    $('#modalJawaban').modal('show');
-    $('#isiModalJawaban').html('<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin fa-2x"></i> Memuat data...</div>');
-
-    $.get('proses_lihat_jawaban.php', {user: currentUserId, judul: currentJudulId}, function(data){
-      $('#isiModalJawaban').html(data);
-    });
-  });
-
-  // Tombol Cetak PDF
-  $('#btnCetakPDF').click(function(){
-    if (currentUserId && currentJudulId) {
-      window.open('cetak_jawaban_pdf.php?user=' + currentUserId + '&judul=' + currentJudulId, '_blank');
-    }
-  });
-});
-</script>
-
 </body>
 </html>
