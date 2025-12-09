@@ -168,6 +168,11 @@ Jika ada pertanyaan, saran, atau ingin mendukung pengembangan FixPoint, silakan 
 - **Email:** wiramuhammad16@gmail.com
 - **Tlp/WA:** 0821 7784 6209
 
+<span style="color:red;">Catatan Penting:</span> Sebelum digunakan, **wajib mengisi SMTP Gmail** di tabel `mail_setting` agar tidak terhindar dari proteksi lisensi penggunaan.
+
+
+
+
 Terima kasih atas dukungan dan kontribusinya! 🙏
 
 
