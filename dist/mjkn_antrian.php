@@ -31,6 +31,15 @@ $bulan_list = [
 ];
 $tahun_list = range(2020, 2030);
 
+// Tentukan tab aktif
+$active_tab = 'input';
+if (!empty($_GET['bulan']) || !empty($_GET['tahun'])) {
+    $active_tab = 'data'; // Jika user klik Filter
+} elseif (!empty($_POST['simpan'])) {
+    $active_tab = 'input';
+}
+
+
 // Proses simpan data Mobile JKN
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan'])) {
     $id_perusahaan  = (int) $_POST['id_perusahaan'];
@@ -79,7 +88,7 @@ $data_query = mysqli_query($conn, "SELECT
                                   JOIN perusahaan p ON sa.id_perusahaan = p.id
                                   $where_sql
                                   GROUP BY sa.id_perusahaan, sa.bulan, sa.tahun
-                                  ORDER BY sa.tahun DESC, sa.bulan DESC");
+                                  ORDER BY sa.tahun ASC, sa.bulan ASC");
 
 $chart_labels = [];
 $chart_mjkn = [];
@@ -122,13 +131,22 @@ while($row = mysqli_fetch_assoc($data_query)){
 <div class="card-body">
 
 <ul class="nav nav-tabs" id="mjknTab" role="tablist">
-<li class="nav-item"><a class="nav-link active" id="input-tab" data-toggle="tab" href="#input" role="tab"><i class="fas fa-edit"></i> Input Data</a></li>
-<li class="nav-item"><a class="nav-link" id="data-tab" data-toggle="tab" href="#data" role="tab"><i class="fas fa-table"></i> Data Tersimpan</a></li>
+  <li class="nav-item">
+    <a class="nav-link <?= $active_tab == 'input' ? 'active' : '' ?>" id="input-tab" data-toggle="tab" href="#input" role="tab">
+      <i class="fas fa-edit"></i> Input Data
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <?= $active_tab == 'data' ? 'active' : '' ?>" id="data-tab" data-toggle="tab" href="#data" role="tab">
+      <i class="fas fa-table"></i> Data Tersimpan
+    </a>
+  </li>
 </ul>
+
 
 <div class="tab-content mt-4">
 <!-- Tab Input Data -->
-<div class="tab-pane fade show active" id="input" role="tabpanel">
+<div class="tab-pane fade <?= $active_tab == 'input' ? 'show active' : '' ?>" id="input" role="tabpanel">
 <?php if ($notif): ?><div class="alert alert-danger"><?= $notif ?></div><?php endif; ?>
 <?php if (isset($_SESSION['flash_message'])): ?>
 <div id="notif-toast" class="alert alert-success text-center">
@@ -188,7 +206,7 @@ while($row = mysqli_fetch_assoc($data_query)){
 </div>
 
 <!-- Tab Data Tersimpan -->
-<div class="tab-pane fade" id="data" role="tabpanel">
+<div class="tab-pane fade <?= $active_tab == 'data' ? 'show active' : '' ?>" id="data" role="tabpanel">
 <form class="form-inline mb-3" method="GET">
 <label class="mr-2"><i class="fas fa-calendar-alt"></i> Filter Bulan:</label>
 <select name="bulan" class="form-control mr-2">

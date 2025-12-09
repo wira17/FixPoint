@@ -30,6 +30,9 @@ if (isset($_POST['edit_id'])) {
     $judul   = mysqli_real_escape_string($conn, $_POST['judul']);
     $isi     = mysqli_real_escape_string($conn, $_POST['isi']);
 
+    // Pastikan newline tersimpan dengan benar
+    $isi = str_replace(["\r\n", "\r"], "\n", $isi);
+
     $sql = "UPDATE catatan_kerja SET judul=?, isi=? WHERE id=? AND user_id=?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ssii", $judul, $isi, $edit_id, $user_id);
@@ -111,185 +114,133 @@ $data_catatan = $stmt_data->get_result();
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <title>Catatan Kerja Saya</title>
-  <link rel="stylesheet" href="assets/modules/bootstrap/css/bootstrap.min.css" />
-  <link rel="stylesheet" href="assets/modules/fontawesome/css/all.min.css" />
-  <link rel="stylesheet" href="assets/css/style.css" />
-  <link rel="stylesheet" href="assets/css/components.css" />
- <style>
-  .catatan-table { font-size: 13px; }
-  .catatan-table th, .catatan-table td { padding: 8px 10px; vertical-align: middle; }
-
-  /* Responsif penuh */
-  @media (max-width: 992px) {
-    .catatan-table th, .catatan-table td {
-      white-space: normal;
-    }
-  }
-
-  /* Kolom aksi biar tetap rapi */
-  .catatan-table td .d-flex {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 5px;
-  }
-
-  .catatan-table td button,
-  .catatan-table td a {
-    min-width: 75px;
-    font-size: 12px;
-  }
-
-  /* Agar isi teks panjang tidak melebar */
-  .catatan-table td:nth-child(3) {
-    max-width: 450px;
-    word-wrap: break-word;
-    white-space: pre-wrap;
-  }
-
-  .pagination { justify-content: center; }
-
-  /* Scroll horizontal aktif bila tabel melebar di layar kecil */
-  .table-responsive {
-    overflow-x: auto;
-  }
+<meta charset="UTF-8" />
+<title>Catatan Kerja Saya</title>
+<link rel="stylesheet" href="assets/modules/bootstrap/css/bootstrap.min.css" />
+<link rel="stylesheet" href="assets/modules/fontawesome/css/all.min.css" />
+<link rel="stylesheet" href="assets/css/style.css" />
+<link rel="stylesheet" href="assets/css/components.css" />
+<style>
+.catatan-table { font-size: 13px; }
+.catatan-table th, .catatan-table td { padding: 8px 10px; vertical-align: middle; }
+.catatan-table td:nth-child(3) { max-width: 450px; word-wrap: break-word; white-space: pre-wrap; }
+.table-responsive { overflow-x: auto; }
+.pagination { justify-content: center; }
 </style>
-
 </head>
 <body>
 <div id="app">
-  <div class="main-wrapper main-wrapper-1">
-    <?php include 'navbar.php'; ?>
-    <?php include 'sidebar.php'; ?>
+<div class="main-wrapper main-wrapper-1">
+<?php include 'navbar.php'; ?>
+<?php include 'sidebar.php'; ?>
 
-    <div class="main-content">
-      <section class="section">
-        <div class="section-body">
+<div class="main-content">
+<section class="section">
+<div class="section-body">
 
-          <div class="card">
-            <div class="card-header">
-              <h4>Catatan Kerja Saya</h4>
-            </div>
-            <div class="card-body">
+<div class="card">
+<div class="card-header"><h4>Catatan Kerja Saya</h4></div>
+<div class="card-body">
 
-              <!-- Filter Form -->
-              <form method="GET" class="form-inline mb-3">
-                <label class="mr-2">Tanggal Dari:</label>
-                <input type="date" name="tgl_dari" value="<?= htmlspecialchars($tgl_dari) ?>" class="form-control mr-2">
-                <label class="mr-2">Tanggal Sampai:</label>
-                <input type="date" name="tgl_sampai" value="<?= htmlspecialchars($tgl_sampai) ?>" class="form-control mr-2">
-                <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Cari judul/isi catatan" class="form-control mr-2">
-              <button type="submit" class="btn btn-primary">Filter</button>
+<!-- Filter Form -->
+<form method="GET" class="form-inline mb-3">
+<label class="mr-2">Tanggal Dari:</label>
+<input type="date" name="tgl_dari" value="<?= htmlspecialchars($tgl_dari) ?>" class="form-control mr-2">
+<label class="mr-2">Tanggal Sampai:</label>
+<input type="date" name="tgl_sampai" value="<?= htmlspecialchars($tgl_sampai) ?>" class="form-control mr-2">
+<input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Cari judul/isi catatan" class="form-control mr-2">
+<button type="submit" class="btn btn-primary">Filter</button>
 <a href="catatan_kerja_saya.php" class="btn btn-secondary ml-2">Reset</a>
-<a href="print_catatan.php?tgl_dari=<?= urlencode($tgl_dari) ?>&tgl_sampai=<?= urlencode($tgl_sampai) ?>&search=<?= urlencode($search) ?>" target="_blank" class="btn btn-success ml-2">
-  <i class="fas fa-print"></i> Print
-</a>
+<a href="print_catatan.php?tgl_dari=<?= urlencode($tgl_dari) ?>&tgl_sampai=<?= urlencode($tgl_sampai) ?>&search=<?= urlencode($search) ?>" target="_blank" class="btn btn-success ml-2"><i class="fas fa-print"></i> Print</a>
+</form>
 
-                <a href="catatan_kerja_saya.php" class="btn btn-secondary ml-2">Reset</a>
-              </form>
-
-             <!-- BAGIAN TABLE DALAM FILE YANG KAMU KIRIM -->
 <div class="table-responsive">
-  <table class="table table-bordered catatan-table">
-    <thead class="thead-dark">
-      <tr class="text-center">
-        <th style="width:5%;">No</th>
-        <th style="width:20%;">Judul</th>
-        <th style="width:45%;">Isi</th>
-        <th style="width:15%;">Tanggal</th>
-        <th style="width:15%;">Aksi</th>
-      </tr>
-    </thead>
-    <tbody>
-      <?php if ($data_catatan && $data_catatan->num_rows > 0): ?>
-        <?php $no = $offset + 1; while ($catatan = $data_catatan->fetch_assoc()) : ?>
-          <tr>
-            <td class="text-center"><?= $no++ ?></td>
-            <td><?= htmlspecialchars($catatan['judul']) ?></td>
-            <td style="white-space: pre-wrap; word-break: break-word;"><?= nl2br(htmlspecialchars($catatan['isi'])) ?></td>
-            <td class="text-center"><?= date('d-m-Y H:i', strtotime($catatan['tanggal'])) ?></td>
-            <td class="text-center">
-              <div class="d-flex justify-content-center flex-wrap gap-1">
-                <button class="btn btn-sm btn-warning m-1"
-                        data-toggle="modal"
-                        data-target="#editModal"
-                        data-id="<?= $catatan['id'] ?>"
-                        data-judul="<?= htmlspecialchars($catatan['judul'], ENT_QUOTES) ?>"
-                        data-isi="<?= htmlspecialchars($catatan['isi'], ENT_QUOTES) ?>">
-                  <i class="fas fa-edit"></i> Edit
-                </button>
-                <a href="?hapus_id=<?= $catatan['id'] ?>"
-                   onclick="return confirm('Yakin ingin menghapus catatan ini?')"
-                   class="btn btn-sm btn-danger m-1">
-                  <i class="fas fa-trash"></i> Hapus
-                </a>
-              </div>
-            </td>
-          </tr>
-        <?php endwhile; ?>
-      <?php else: ?>
-        <tr>
-          <td colspan="5" class="text-center">Tidak ada catatan kerja.</td>
-        </tr>
-      <?php endif; ?>
-    </tbody>
-  </table>
+<table class="table table-bordered catatan-table">
+<thead class="thead-dark">
+<tr class="text-center">
+<th style="width:5%;">No</th>
+<th style="width:20%;">Judul</th>
+<th style="width:45%;">Isi</th>
+<th style="width:15%;">Tanggal</th>
+<th style="width:15%;">Aksi</th>
+</tr>
+</thead>
+<tbody>
+<?php if ($data_catatan && $data_catatan->num_rows > 0): ?>
+<?php $no = $offset + 1; while ($catatan = $data_catatan->fetch_assoc()) : ?>
+<tr>
+<td class="text-center"><?= $no++ ?></td>
+<td><?= htmlspecialchars($catatan['judul']) ?></td>
+<td><?= nl2br(htmlspecialchars($catatan['isi'])) ?></td>
+<td class="text-center"><?= date('d-m-Y H:i', strtotime($catatan['tanggal'])) ?></td>
+<td class="text-center">
+<div class="d-flex justify-content-center flex-wrap gap-1">
+<button class="btn btn-sm btn-warning m-1" data-toggle="modal" data-target="#editModal"
+data-id="<?= $catatan['id'] ?>"
+data-judul="<?= htmlspecialchars($catatan['judul'], ENT_QUOTES) ?>"
+data-isi="<?= htmlspecialchars($catatan['isi'], ENT_QUOTES) ?>">
+<i class="fas fa-edit"></i> Edit
+</button>
+<a href="?hapus_id=<?= $catatan['id'] ?>" onclick="return confirm('Yakin ingin menghapus catatan ini?')" class="btn btn-sm btn-danger m-1"><i class="fas fa-trash"></i> Hapus</a>
+</div>
+</td>
+</tr>
+<?php endwhile; ?>
+<?php else: ?>
+<tr><td colspan="5" class="text-center">Tidak ada catatan kerja.</td></tr>
+<?php endif; ?>
+</tbody>
+</table>
 </div>
 
+<nav>
+<ul class="pagination">
+<?php for ($i = 1; $i <= $total_pages; $i++): ?>
+<li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+<a class="page-link" href="?page=<?= $i ?>&tgl_dari=<?= urlencode($tgl_dari) ?>&tgl_sampai=<?= urlencode($tgl_sampai) ?>&search=<?= urlencode($search) ?>"><?= $i ?></a>
+</li>
+<?php endfor; ?>
+</ul>
+</nav>
 
-              <!-- Pagination -->
-              <nav>
-                <ul class="pagination">
-                  <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
-                      <a class="page-link" href="?page=<?= $i ?>&tgl_dari=<?= urlencode($tgl_dari) ?>&tgl_sampai=<?= urlencode($tgl_sampai) ?>&search=<?= urlencode($search) ?>"><?= $i ?></a>
-                    </li>
-                  <?php endfor; ?>
-                </ul>
-              </nav>
+</div>
+</div>
 
-            </div>
-          </div>
-
-        </div>
-      </section>
-    </div>
-  </div>
+</div>
+</section>
+</div>
+</div>
 </div>
 
 <!-- Edit Modal -->
 <div class="modal fade" id="editModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <form method="POST" action="">
-        <div class="modal-header">
-          <h5 class="modal-title">Edit Catatan Kerja</h5>
-          <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="edit_id" id="edit_id">
-          <div class="form-group">
-            <label>Judul</label>
-            <input type="text" name="judul" id="edit_judul" class="form-control" required>
-          </div>
-          <div class="form-group">
-            <label>Isi Catatan</label>
-            <textarea name="isi" id="edit_isi" class="form-control" rows="5" required></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-        </div>
-      </form>
-    </div>
-  </div>
+<div class="modal-dialog modal-lg" role="document">
+<div class="modal-content">
+<form method="POST" action="">
+<div class="modal-header">
+<h5 class="modal-title">Edit Catatan Kerja</h5>
+<button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+</div>
+<div class="modal-body">
+<input type="hidden" name="edit_id" id="edit_id">
+<div class="form-group">
+<label>Judul</label>
+<input type="text" name="judul" id="edit_judul" class="form-control" required>
+</div>
+<div class="form-group">
+<label>Isi Catatan</label>
+<textarea name="isi" id="edit_isi" class="form-control" rows="5" required></textarea>
+</div>
+</div>
+<div class="modal-footer">
+<button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+<button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+</div>
+</form>
+</div>
+</div>
 </div>
 
-<!-- JS -->
 <script src="assets/modules/jquery.min.js"></script>
 <script src="assets/modules/popper.js"></script>
 <script src="assets/modules/bootstrap/js/bootstrap.min.js"></script>
@@ -298,18 +249,22 @@ $data_catatan = $stmt_data->get_result();
 <script src="assets/js/stisla.js"></script>
 <script src="assets/js/scripts.js"></script>
 <script src="assets/js/custom.js"></script>
-<script>
-  $('#editModal').on('show.bs.modal', function (event) {
-      var button = $(event.relatedTarget);
-      var id = button.data('id');
-      var judul = button.data('judul');
-      var isi = button.data('isi');
 
-      var modal = $(this);
-      modal.find('#edit_id').val(id);
-      modal.find('#edit_judul').val(judul);
-      modal.find('#edit_isi').val(isi);
-  });
+<script>
+$('#editModal').on('show.bs.modal', function (event) {
+    var button = $(event.relatedTarget);
+    var id = button.data('id');
+    var judul = button.data('judul');
+    var isi = button.data('isi');
+
+    // Perbaiki newline agar textarea membaca baris baru
+    isi = isi.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
+
+    var modal = $(this);
+    modal.find('#edit_id').val(id);
+    modal.find('#edit_judul').val(judul);
+    modal.find('#edit_isi').val(isi);
+});
 </script>
 </body>
 </html>

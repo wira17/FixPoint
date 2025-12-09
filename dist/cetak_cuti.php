@@ -44,13 +44,55 @@ $hrd      = $data['acc_hrd_by'] ?: '........................';
 $html = '
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <style>
-body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.6; color: #000; }
-.header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 20px; }
-.header .nama-perusahaan { font-size: 16pt; font-weight: bold; text-transform: uppercase; }
-.header .alamat { font-size: 10pt; color: #333; }
-.content { margin-top: 20px; text-align: justify; }
-.ttd { margin-top: 50px; width: 100%; border-collapse: collapse; }
-.ttd td { text-align: center; vertical-align: bottom; height: 80px; width: 25%; }
+body { 
+  font-family: "Times New Roman", serif; 
+  font-size: 12pt; 
+  line-height: 1.6; 
+  color: #000; 
+}
+.header { 
+  text-align: center; 
+  border-bottom: 2px solid #000; 
+  padding-bottom: 5px; 
+  margin-bottom: 20px; 
+}
+.header .nama-perusahaan { 
+  font-size: 16pt; 
+  font-weight: bold; 
+  text-transform: uppercase; 
+}
+.header .alamat { 
+  font-size: 10pt; 
+  color: #333; 
+}
+.content { 
+  margin-top: 20px; 
+  text-align: justify; 
+}
+.ttd {
+  width: 100%;
+  margin-top: 40px;
+  text-align: center;
+  border-collapse: collapse;
+}
+.ttd td {
+  width: 25%;
+  vertical-align: top;
+  padding: 5px;
+}
+.ttd .jabatan {
+  font-style: italic;
+  font-size: 11pt;
+  color: #333;
+  margin-bottom: 30px; /* lebih rapat */
+}
+.ttd .title {
+  font-weight: bold;
+  text-decoration: underline;
+  display: inline-block;
+  margin-top: 40px; /* sebelumnya 80px */
+}
+
 </style>
 
 <div class="header">
@@ -88,17 +130,25 @@ Demikian permohonan ini saya ajukan, atas perhatian dan persetujuannya saya ucap
 </div>
 
 <table class="ttd">
-<tr>
-  <td>Pemohon,<br><br><br><br><u>'.htmlspecialchars($pemohon).'</u></td>
-  <td>Delegasi,<br><br><br><br><u>'.htmlspecialchars($delegasi).'</u></td>
-  <td>Atasan,<br><br><br><br><u>'.htmlspecialchars($atasan).'</u></td>
-  <td>HRD,<br><br><br><br><u>'.htmlspecialchars($hrd).'</u></td>
-</tr>
+  <tr>
+    <td>
+      <div class="jabatan">Pemohon</div>
+      <div class="title">'.htmlspecialchars($pemohon).'</div>
+    </td>
+    <td>
+      <div class="jabatan">Delegasi</div>
+      <div class="title">'.htmlspecialchars($delegasi).'</div>
+    </td>
+    <td>
+      <div class="jabatan">Atasan</div>
+      <div class="title">'.htmlspecialchars($atasan).'</div>
+    </td>
+    <td>
+      <div class="jabatan">HRD</div>
+      <div class="title">'.htmlspecialchars($hrd).'</div>
+    </td>
+  </tr>
 </table>
-
-<div style="margin-top:30px; font-size:10pt; color:#555;">
-Dicetak pada: '.date("d-m-Y H:i").'
-</div>
 ';
 
 // === Generate PDF ===

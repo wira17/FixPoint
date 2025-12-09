@@ -28,6 +28,15 @@ $delegasiList = mysqli_query($conn, "SELECT id, nama FROM users
                                      AND id <> '".$userLogin['id']."' 
                                      ORDER BY nama ASC");
 
+// === Data jatah cuti user login (untuk validasi) ===
+$tahun = date('Y');
+$sqlCuti = "SELECT cuti_id, sisa_hari FROM jatah_cuti WHERE karyawan_id='$user_id' AND tahun='$tahun'";
+$resCuti = mysqli_query($conn, $sqlCuti);
+$sisaCuti = [];
+while ($row = mysqli_fetch_assoc($resCuti)) {
+    $sisaCuti[$row['cuti_id']] = $row['sisa_hari'];
+}
+
 // === Proses Simpan Pengajuan ===
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['simpan'])) {
   $karyawan_id    = $userLogin['id'];
@@ -56,17 +65,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['simpan'])) {
 
   // === Validasi field ===
   if ($master_cuti_id <= 0 || empty($tanggalArray)) {
-    $_SESSION['flash_message'] = "Semua field wajib diisi!";
+    $_SESSION['flash_message'] = "❌ Semua field wajib diisi!";
   } else {
-    // urutkan tanggal dan ambil min/max
     sort($tanggalArray);
     $tanggal_mulai   = $tanggalArray[0];
     $tanggal_selesai = end($tanggalArray);
     $lama_hari       = count($tanggalArray);
 
+    // === VALIDASI BARU: Lama cuti > sisa cuti ===
+    $sisa = $sisaCuti[$master_cuti_id] ?? 0;
+    if ($lama_hari > $sisa) {
+      $_SESSION['flash_message'] = "❌ Gagal! Lama cuti ($lama_hari hari) melebihi sisa cuti ($sisa hari).";
+      header("Location: pengajuan_cuti.php");
+      exit;
+    }
+
+    // === Simpan ke DB jika valid ===
     mysqli_begin_transaction($conn);
     try {
-      // insert pengajuan utama
       $sql = "INSERT INTO pengajuan_cuti 
                 (karyawan_id, cuti_id, delegasi_id, tanggal_mulai, tanggal_selesai, lama_hari, alasan, 
                  status, status_delegasi, status_atasan, status_hrd,
@@ -79,7 +95,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['simpan'])) {
       mysqli_query($conn, $sql);
       $pengajuan_id = mysqli_insert_id($conn);
 
-      // insert tanggal detail
       foreach ($tanggalArray as $tgl) {
         $tgl = mysqli_real_escape_string($conn, $tgl);
         mysqli_query($conn, "INSERT INTO pengajuan_cuti_detail (pengajuan_id, tanggal) VALUES ('$pengajuan_id','$tgl')");
@@ -96,8 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['simpan'])) {
   exit;
 }
 
-// === Data jatah cuti user login (untuk modal info cuti) ===
-$tahun = date('Y');
+// === Ambil data jatah cuti user login (untuk modal) ===
 $sql = "SELECT mc.nama_cuti, mc.id as cuti_id, jc.lama_hari, jc.sisa_hari,
                (jc.lama_hari - jc.sisa_hari) AS terpakai
         FROM jatah_cuti jc
@@ -115,7 +129,7 @@ if ($stmt) {
     $dataCuti = [];
 }
 
-// === Ambil Data Pengajuan Cuti untuk Tabel ===
+// === Ambil Data Pengajuan Cuti ===
 $dataPengajuan = mysqli_query($conn, "
   SELECT p.*, u.nama AS nama_karyawan, mc.nama_cuti, d.nama AS nama_delegasi,
          GROUP_CONCAT(DATE_FORMAT(pc.tanggal,'%d-%m-%Y') ORDER BY pc.tanggal SEPARATOR ', ') AS tanggal_cuti
@@ -318,11 +332,25 @@ $dataPengajuan = mysqli_query($conn, "
                             </td>
                             <td><?= htmlspecialchars($row['acc_hrd_by'] ?? '-') ?></td>
 
-                            <td class="text-center">
-                              <a href="cetak_cuti.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-info">
-                                <i class="fas fa-print"></i>
-                              </a>
-                            </td>
+                          <td class="text-center">
+  <a href="cetak_cuti.php?id=<?= $row['id'] ?>" target="_blank" class="btn btn-sm btn-info" title="Cetak">
+    <i class="fas fa-print"></i>
+  </a>
+
+  <?php if (
+    $row['status_delegasi'] == 'Menunggu' && 
+    $row['status_atasan'] == 'Menunggu' && 
+    $row['status_hrd'] == 'Menunggu'
+  ): ?>
+    <a href="batal_cuti.php?id=<?= $row['id'] ?>" 
+       class="btn btn-sm btn-danger" 
+       title="Batalkan Pengajuan" 
+       onclick="return confirm('Yakin ingin membatalkan pengajuan cuti ini?');">
+       <i class="fas fa-times"></i>
+    </a>
+  <?php endif; ?>
+</td>
+
                           </tr>
                         <?php endwhile; ?>
                       </tbody>

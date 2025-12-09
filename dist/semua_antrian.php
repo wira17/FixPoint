@@ -121,14 +121,34 @@ while($row = mysqli_fetch_assoc($data_query)){
 <div class="card-header"><h4>Manajemen Semua Antrian (All Pemanfaatan)</h4></div>
 <div class="card-body">
 
+
+<?php
+// Tentukan tab aktif berdasarkan kondisi
+$active_tab = 'input';
+if (!empty($_GET['bulan']) || !empty($_GET['tahun'])) {
+    $active_tab = 'data'; // Jika user klik filter, buka tab data tersimpan
+} elseif (!empty($_POST['simpan'])) {
+    $active_tab = 'input';
+}
+?>
+
 <ul class="nav nav-tabs" id="antrianTab" role="tablist">
-<li class="nav-item"><a class="nav-link active" id="input-tab" data-toggle="tab" href="#input" role="tab"><i class="fas fa-edit"></i> Input Data</a></li>
-<li class="nav-item"><a class="nav-link" id="data-tab" data-toggle="tab" href="#data" role="tab"><i class="fas fa-table"></i> Data Tersimpan</a></li>
+    <li class="nav-item">
+        <a class="nav-link <?= $active_tab == 'input' ? 'active' : '' ?>" id="input-tab" data-toggle="tab" href="#input" role="tab">
+            <i class="fas fa-edit"></i> Input Data
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link <?= $active_tab == 'data' ? 'active' : '' ?>" id="data-tab" data-toggle="tab" href="#data" role="tab">
+            <i class="fas fa-table"></i> Data Tersimpan
+        </a>
+    </li>
 </ul>
 
 <div class="tab-content mt-4">
-<!-- Tab Input Data -->
-<div class="tab-pane fade show active" id="input" role="tabpanel">
+    <!-- Tab Input Data -->
+    <div class="tab-pane fade <?= $active_tab == 'input' ? 'show active' : '' ?>" id="input" role="tabpanel">
+
 <?php if ($notif): ?><div class="alert alert-danger"><?= $notif ?></div><?php endif; ?>
 <?php if (isset($_SESSION['flash_message'])): ?>
 <div id="notif-toast" class="alert alert-success text-center">
@@ -290,6 +310,17 @@ foreach($chart_rows as $row){
 
 <script>
 $(document).ready(function () {
+    // === Simpan tab aktif ke localStorage ===
+    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        localStorage.setItem('activeTab', $(e.target).attr('href'));
+    });
+
+    // === Ambil kembali tab terakhir yang dibuka ===
+    var activeTab = localStorage.getItem('activeTab');
+    if (activeTab) {
+        $('#antrianTab a[href="' + activeTab + '"]').tab('show');
+    }
+
     // Notifikasi hilang otomatis
     $('#notif-toast').fadeIn(300).delay(2000).fadeOut(500);
 
@@ -321,10 +352,10 @@ $(document).ready(function () {
                 datasets: [{
                     label: '% All Pemanfaatan',
                     data: dataAll,
-                    borderColor: 'rgba(54, 162, 235, 1)', // biru solid
-                    backgroundColor: 'transparent',        // tanpa arsiran
-                    tension: 0,                             // garis tajam lurus
-                    fill: false,                            // tidak ada fill warna
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'transparent',
+                    tension: 0,
+                    fill: false,
                     borderWidth: 2,
                     pointBackgroundColor: 'rgba(54, 162, 235, 1)',
                     pointBorderColor: '#fff',
@@ -400,6 +431,7 @@ $(document).ready(function () {
     });
 });
 </script>
+
 
 
 </body>

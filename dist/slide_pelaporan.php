@@ -3,578 +3,391 @@ include 'security.php';
 include 'koneksi.php';
 date_default_timezone_set('Asia/Jakarta');
 
-// === Hitung bulan & tahun sebelumnya ===
-$bulan_sekarang = date('n');
-$tahun_sekarang = date('Y');
-if ($bulan_sekarang == 1) {
-  $bulan_lalu = 12;
-  $tahun_lalu = $tahun_sekarang - 1;
-} else {
-  $bulan_lalu = $bulan_sekarang - 1;
-  $tahun_lalu = $tahun_sekarang;
-}
-
-// === Query Data ===
-$data_satu = mysqli_query($conn, "
-  SELECT endpoint, SUM(jumlah) AS total 
-  FROM satu_sehat 
-  WHERE bulan='$bulan_lalu' AND tahun='$tahun_lalu'
-  GROUP BY endpoint ORDER BY endpoint ASC
-");
-
-$data_antrian = mysqli_query($conn, "
-  SELECT tahun, bulan, jumlah_sep, jumlah_antri, jumlah_mjkn, persen_all, persen_mjkn 
-  FROM semua_antrian 
-  WHERE tahun='$tahun_sekarang'
-  ORDER BY tahun ASC, bulan ASC
-");
-
-$data_progres = mysqli_query($conn, "
-  SELECT bulan, tahun, progres 
-  FROM progres_kerja
-  WHERE bulan='$bulan_lalu' AND tahun='$tahun_lalu'
-  ORDER BY tahun DESC, bulan DESC
-");
-
-$data_maint = mysqli_query($conn, "
-  SELECT id, nama_teknisi, waktu_input, kondisi_fisik, fungsi_perangkat, catatan 
-  FROM maintanance_rutin 
-  ORDER BY waktu_input DESC
-");
-
-$data_hw = mysqli_query($conn, "
-  SELECT nomor_tiket, nama, unit_kerja, kategori, tanggal_input, status, teknisi_nama 
-  FROM tiket_it_hardware 
-  ORDER BY tanggal_input DESC
-");
-
-$data_sw = mysqli_query($conn, "
-  SELECT nomor_tiket, nama, unit_kerja, kategori, tanggal_input, status, teknisi_nama 
-  FROM tiket_it_software 
-  ORDER BY tanggal_input DESC
-");
-
-$bulan_list = [
-  1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',
-  7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'
-];
+// === Query semua tabel ===
+$semua_antrian = mysqli_query($conn, "SELECT * FROM semua_antrian ORDER BY tahun DESC, bulan DESC");
+$poli_antrian = mysqli_query($conn, "SELECT * FROM poli_antrian ORDER BY tahun DESC, bulan DESC");
+$satu_sehat = mysqli_query($conn, "SELECT * FROM satu_sehat ORDER BY tahun DESC, bulan DESC");
+$maintanance_rutin = mysqli_query($conn, "SELECT * FROM maintanance_rutin ORDER BY waktu_input DESC");
+$progres_kerja = mysqli_query($conn, "SELECT * FROM progres_kerja ORDER BY tahun DESC, bulan DESC");
+$berita_acara = mysqli_query($conn, "SELECT * FROM berita_acara_hardware ORDER BY tanggal DESC");
+$data_erm = mysqli_query($conn, "SELECT * FROM data_erm ORDER BY tahun DESC, bulan DESC");
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Slide Pelaporan</title>
-<link rel="stylesheet" href="assets/modules/bootstrap/css/bootstrap.min.css">
-<link rel="stylesheet" href="assets/modules/fontawesome/css/all.min.css">
-<style>
-body {
-  background: linear-gradient(135deg, #0a2342, #0d335d);
-  color: #fff;
-  font-family: 'Segoe UI', sans-serif;
-  overflow: hidden;
-}
-.slide {
-  display: none;
-  height: 100vh;
-  padding: 40px;
-  text-align: center;
-}
-.active-slide { display: block; animation: fadeIn 0.8s; }
-@keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
-
-h2 {
-  color: #00d1ff;
-  font-weight: 700;
-  margin-bottom: 25px;
-  text-shadow: 0 0 8px rgba(0,0,0,0.4);
-}
-
-.card-table {
-  background: rgba(255,255,255,0.08);
-  border-radius: 15px;
-  padding: 20px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.3);
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.table {
-  table-layout: fixed;
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-.table th, .table td {
-  color: #fff;
-  vertical-align: middle;
-  word-wrap: break-word;
-  padding: 8px;
-}
-.table thead {
-  background: rgba(255,255,255,0.15);
-  font-weight: bold;
-}
-.table tbody tr:hover {
-  background-color: rgba(255,255,255,0.08);
-}
-.table-responsive {
-  max-height: 65vh;
-  overflow-y: auto;
-  border-radius: 10px;
-}
-
-.nav-btn {
-  position: fixed;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255,255,255,0.1);
-  border: none;
-  color: #fff;
-  font-size: 28px;
-  padding: 18px 22px;
-  cursor: pointer;
-  border-radius: 50%;
-  transition: 0.3s;
-  z-index: 99;
-}
-.nav-btn:hover { background: rgba(255,255,255,0.25); }
-#prevBtn { left: 25px; }
-#nextBtn { right: 25px; }
-
-footer {
-  position: absolute;
-  bottom: 15px;
-  width: 100%;
-  text-align: center;
-  font-size: 13px;
-  color: #bbb;
-}
-
-.action-btn {
-  position: fixed;
-  top: 20px;
-  z-index: 100;
-  background: rgba(255,255,255,0.1);
-  color: #fff;
-  border: none;
-  font-size: 20px;
-  padding: 10px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-.action-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.05); }
-.back-btn { left: 25px; }
-</style>
+  <meta charset="UTF-8">
+  <title>Slide Pelaporan</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Poppins', sans-serif;
+    }
+    .container {
+      margin-top: 30px;
+    }
+    h2 {
+      font-weight: 600;
+      color: #0d6efd;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    table {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    th {
+      background-color: #0d6efd;
+      color: white;
+      text-align: center;
+    }
+    td {
+      text-align: center;
+      vertical-align: middle;
+    }
+    .carousel {
+      position: relative;
+    }
+    .carousel-control-prev,
+    .carousel-control-next {
+      width: 5%;
+    }
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+      filter: invert(1);
+      background-color: rgba(0, 0, 0, 0.3);
+      border-radius: 50%;
+      padding: 10px;
+    }
+    .slide-content {
+      padding: 20px;
+    }
+  </style>
 </head>
 <body>
 
-<!-- Tombol kembali -->
-<button class="action-btn back-btn" onclick="window.location.href='dashboard.php'">
-  <i class="fas fa-home"></i>
-</button>
+<div class="container">
+  <h2>📊 Slide Pelaporan</h2>
 
-<!-- === SLIDE 2: % ALL === -->
-<div class="slide active-slide" id="slide2">
-  <h2><i class="fas fa-chart-line"></i> Persentase Semua Antrian (% ALL) - Tahun <?= $tahun_sekarang ?></h2>
-  <div class="card-table table-responsive">
-    <table class="table table-dark table-bordered table-striped text-center">
-      <thead>
-        <tr>
-          <th>No</th>
-          <th>Bulan</th>
-          <th>Tahun</th>
-          <th>Jumlah SEP</th>
-          <th>Jumlah Antrian</th>
-          <th>% ALL</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php 
-        $no = 1; 
-        mysqli_data_seek($data_antrian, 0); 
-        while ($r = mysqli_fetch_assoc($data_antrian)) : 
-        ?>
-        <tr>
-          <td><?= $no++ ?></td>
-          <td><?= $bulan_list[$r['bulan']] ?></td>
-          <td><?= $r['tahun'] ?></td>
-          <td><?= number_format($r['jumlah_sep']) ?></td>
-          <td><?= number_format($r['jumlah_antri']) ?></td>
-          <td class="text-success font-weight-bold"><?= number_format($r['persen_all'], 2) ?>%</td>
-        </tr>
-        <?php endwhile; ?>
-      </tbody>
-    </table>
-  </div>
-</div>
+  <div id="reportCarousel" class="carousel slide" data-bs-ride="false">
+    <div class="carousel-inner">
 
-
-<!-- === SLIDE 3: % JKN === -->
-<div class="slide" id="slide3">
-  <h2><i class="fas fa-id-card"></i> Persentase JKN - Tahun <?= $tahun_sekarang ?></h2>
-  <div class="card-table table-responsive">
-    <table class="table table-dark table-bordered table-striped text-center">
-      <thead>
-        <tr>
-          <th>No</th>
-          <th>Bulan</th>
-          <th>Tahun</th>
-          <th>Jumlah SEP</th>
-          <th>Jumlah Mobile JKN</th>
-          <th>% Mobile JKN</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php
-        $no = 1;
-        // Pastikan pointer query dikembalikan ke awal
-        mysqli_data_seek($data_antrian, 0);
-        while ($r = mysqli_fetch_assoc($data_antrian)) : ?>
-          <tr>
-            <td><?= $no++ ?></td>
-            <td><?= $bulan_list[$r['bulan']] ?></td>
-            <td><?= $r['tahun'] ?></td>
-            <td><?= number_format($r['jumlah_sep']) ?></td>
-            <td><?= number_format($r['jumlah_mjkn']) ?></td>
-            <td class="text-info font-weight-bold"><?= number_format($r['persen_mjkn'], 2) ?>%</td>
-          </tr>
-        <?php endwhile; ?>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-</div>
-
-<!-- === SLIDE 1: SATUSEHAT === -->
-<div class="slide" id="slide1">
-  <h2><i class="fas fa-laptop-medical"></i> Laporan SATUSEHAT - <?= $bulan_list[$bulan_lalu]." ".$tahun_lalu ?></h2>
-  <div class="card-table">
-    <canvas id="chartSatuSehat" height="130"></canvas>
-  </div>
-</div>
-
-<!-- === SLIDE 7: Tiket IT Software === -->
-<div class="slide" id="slide7">
-  <h2><i class="fas fa-code"></i> Tiket IT Software</h2>
-  <div class="card-table table-responsive">
-    <table class="table table-dark table-bordered table-striped text-center">
-      <thead>
-        <tr><th>No</th><th>No Tiket</th><th>Nama</th><th>Unit</th><th>Kategori</th><th>Status</th><th>Teknisi</th><th>Tanggal</th></tr>
-      </thead>
-      <tbody>
-        <?php $no=1; while($s=mysqli_fetch_assoc($data_sw)): ?>
-        <tr>
-          <td><?= $no++ ?></td>
-          <td><?= htmlspecialchars($s['nomor_tiket']) ?></td>
-          <td><?= htmlspecialchars($s['nama']) ?></td>
-          <td><?= htmlspecialchars($s['unit_kerja']) ?></td>
-          <td><?= htmlspecialchars($s['kategori']) ?></td>
-          <td><?= htmlspecialchars($s['status']) ?></td>
-          <td><?= htmlspecialchars($s['teknisi_nama']) ?></td>
-          <td><?= $s['tanggal_input'] ?></td>
-        </tr>
-        <?php endwhile; ?>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- === SLIDE 6: Tiket IT Hardware === -->
-<div class="slide" id="slide6">
-  <h2><i class="fas fa-desktop"></i> Tiket IT Hardware</h2>
-  <div class="card-table table-responsive">
-    <table class="table table-dark table-bordered table-striped text-center">
-      <thead>
-        <tr><th>No</th><th>No Tiket</th><th>Nama</th><th>Unit</th><th>Kategori</th><th>Status</th><th>Teknisi</th><th>Tanggal</th></tr>
-      </thead>
-      <tbody>
-        <?php $no=1; while($h=mysqli_fetch_assoc($data_hw)): ?>
-        <tr>
-          <td><?= $no++ ?></td>
-          <td><?= htmlspecialchars($h['nomor_tiket']) ?></td>
-          <td><?= htmlspecialchars($h['nama']) ?></td>
-          <td><?= htmlspecialchars($h['unit_kerja']) ?></td>
-          <td><?= htmlspecialchars($h['kategori']) ?></td>
-          <td><?= htmlspecialchars($h['status']) ?></td>
-          <td><?= htmlspecialchars($h['teknisi_nama']) ?></td>
-          <td><?= $h['tanggal_input'] ?></td>
-        </tr>
-        <?php endwhile; ?>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- === SLIDE 5: Maintenance === -->
-<div class="slide" id="slide5">
-  <h2><i class="fas fa-tools"></i> Data Maintenance Rutin</h2>
-  <div class="card-table table-responsive">
-    <table class="table table-dark table-bordered table-striped text-center">
-      <thead><tr><th>No</th><th>Teknisi</th><th>Waktu</th><th>Kondisi</th><th>Fungsi</th><th>Catatan</th></tr></thead>
-      <tbody>
-        <?php $no=1; while($m=mysqli_fetch_assoc($data_maint)): ?>
-        <tr>
-          <td><?= $no++ ?></td>
-          <td><?= htmlspecialchars($m['nama_teknisi']) ?></td>
-          <td><?= $m['waktu_input'] ?></td>
-          <td><?= htmlspecialchars($m['kondisi_fisik']) ?></td>
-          <td><?= htmlspecialchars($m['fungsi_perangkat']) ?></td>
-          <td><?= nl2br(htmlspecialchars($m['catatan'])) ?></td>
-        </tr>
-        <?php endwhile; ?>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- === SLIDE 4: Progres Kerja === -->
-<div class="slide" id="slide4">
-  <h2><i class="fas fa-tasks"></i> Progres Kerja Bulan <?= $bulan_list[$bulan_lalu]." ".$tahun_lalu ?></h2>
-  <div class="card-table table-responsive">
-    <table class="table table-bordered table-striped table-dark text-center">
-      <thead><tr><th>No</th><th>Bulan</th><th>Tahun</th><th>Progres</th></tr></thead>
-      <tbody>
-        <?php $no=1; while($p=mysqli_fetch_assoc($data_progres)): ?>
-        <tr>
-          <td><?= $no++ ?></td>
-          <td><?= $bulan_list[$p['bulan']] ?></td>
-          <td><?= $p['tahun'] ?></td>
-          <td><?= nl2br(htmlspecialchars($p['progres'])) ?></td>
-        </tr>
-        <?php endwhile; ?>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-
-<!-- === SLIDE 8: Handling Time IT Hardware === -->
-<div class="slide" id="slide8">
-  <h2><i class="fas fa-clock"></i> Handling Time Tiket IT Hardware - <?= $bulan_list[$bulan_lalu] . " " . $tahun_lalu ?></h2>
-  <div class="card-table">
-    <div class="table-responsive-custom">
-      <table class="table table-bordered table-sm table-hover text-center">
-        <thead class="thead-dark">
-          <tr>
-            <th>No</th>
-            <th>Nomor Tiket</th>
-            <th>Kategori</th>
-            <th>Kendala / Teknisi</th>
-            <th>Waktu Order</th>
-            <th>Waktu Selesai</th>
-            <th>Lama Pengerjaan</th>
-          </tr>
-        </thead>
-        <tbody>
-        <?php
-        $no = 1;
-
-        // Hitung bulan & tahun sebelumnya
-        $bulan_sekarang = date('n');
-        $tahun_sekarang = date('Y');
-        if ($bulan_sekarang == 1) {
-            $bulan_lalu = 12;
-            $tahun_lalu = $tahun_sekarang - 1;
-        } else {
-            $bulan_lalu = $bulan_sekarang - 1;
-            $tahun_lalu = $tahun_sekarang;
-        }
-
-        $query = "SELECT * FROM tiket_it_hardware 
-                  WHERE MONTH(tanggal_input) = '$bulan_lalu' 
-                    AND YEAR(tanggal_input) = '$tahun_lalu'
-                  ORDER BY tanggal_input DESC";
-        $result = mysqli_query($conn, $query);
-
-        function formatTanggal($tanggal) {
-            return $tanggal ? date('d-m-Y H:i', strtotime($tanggal)) : '-';
-        }
-
-        function hitungDurasi($mulai, $selesai) {
-            if (!$mulai || !$selesai) return '-';
-            $start = new DateTime($mulai);
-            $end = new DateTime($selesai);
-            $interval = $start->diff($end);
-            $jam = $interval->h + ($interval->days * 24);
-            $menit = $interval->i;
-            return "{$jam}j {$menit}m";
-        }
-
-        if (mysqli_num_rows($result) > 0) {
-            while ($row = mysqli_fetch_assoc($result)) {
-                $kendala = htmlspecialchars($row['kendala']);
-                $teknisi = htmlspecialchars($row['teknisi_nama']);
-                $tgl_input = formatTanggal($row['tanggal_input']);
-                $selesai_time = formatTanggal($row['waktu_selesai']);
-                $lama = hitungDurasi($row['tanggal_input'], $row['waktu_selesai']);
-
-                echo "<tr>";
-                echo "<td>{$no}</td>";
-                echo "<td>{$row['nomor_tiket']}</td>";
-                echo "<td>{$row['kategori']}</td>";
-                echo "<td>{$kendala} / {$teknisi}</td>";
-                echo "<td>{$tgl_input}</td>";
-                echo "<td>{$selesai_time}</td>";
-                echo "<td>{$lama}</td>";
-                echo "</tr>";
-                $no++;
-            }
-        } else {
-            echo "<tr><td colspan='7'>Tidak ada data ditemukan.</td></tr>";
-        }
-        ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-
-<!-- === SLIDE 9: Handling Time IT Software === -->
-<div class="slide" id="slide9">
-  <h2><i class="fas fa-clock"></i> Handling Time Tiket IT Software - <?= $bulan_list[$bulan_lalu] . " " . $tahun_lalu ?></h2>
-  <div class="card-table">
-    <div class="table-responsive-custom">
-      <table class="table table-bordered table-sm table-hover text-center">
-        <thead class="thead-dark">
-          <tr>
-            <th>No</th>
-            <th>Nomor Tiket</th>
-            <th>Kategori</th>
-            <th>Kendala / Teknisi</th>
-            <th>Waktu Order</th>
-            <th>Waktu Selesai</th>
-            <th>Lama Pengerjaan</th>
-          </tr>
-        </thead>
-        <tbody>
-        <?php
-        $no = 1;
-
-        // Ambil data tiket IT Software bulan & tahun sebelumnya
-        $query_sw = "SELECT * FROM tiket_it_software 
-                     WHERE MONTH(tanggal_input) = '$bulan_lalu' 
-                       AND YEAR(tanggal_input) = '$tahun_lalu'
-                     ORDER BY tanggal_input DESC";
-        $result_sw = mysqli_query($conn, $query_sw);
-
-        if (mysqli_num_rows($result_sw) > 0) {
-            while ($row = mysqli_fetch_assoc($result_sw)) {
-                $kendala = htmlspecialchars($row['kendala']);
-                $teknisi = htmlspecialchars($row['teknisi_nama']);
-                $tgl_input = formatTanggal($row['tanggal_input']);
-                $selesai_time = formatTanggal($row['waktu_selesai']);
-                $lama = hitungDurasi($row['tanggal_input'], $row['waktu_selesai']);
-
-                echo "<tr>";
-                echo "<td>{$no}</td>";
-                echo "<td>{$row['nomor_tiket']}</td>";
-                echo "<td>{$row['kategori']}</td>";
-                echo "<td>{$kendala} / {$teknisi}</td>";
-                echo "<td>{$tgl_input}</td>";
-                echo "<td>{$selesai_time}</td>";
-                echo "<td>{$lama}</td>";
-                echo "</tr>";
-                $no++;
-            }
-        } else {
-            echo "<tr><td colspan='7'>Tidak ada data ditemukan.</td></tr>";
-        }
-        ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-
-<!-- Modal Kendala -->
-<div class="modal fade" id="modalKendala" tabindex="-1" role="dialog" aria-labelledby="modalKendalaLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header bg-info text-white">
-        <h5 class="modal-title"><i class="fas fa-eye"></i> Detail Kendala</h5>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Tutup">
-          <span aria-hidden="true">&times;</span>
-        </button>
+      <!-- === Slide 1: Semua Antrian === -->
+      <div class="carousel-item active">
+        <div class="slide-content">
+          <h4 class="text-center mb-3">📋 Data Semua Antrian</h4>
+          <table class="table table-bordered table-striped table-hover">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>ID</th>
+                <th>ID Perusahaan</th>
+                <th>Jumlah SEP</th>
+                <th>Jumlah Antri</th>
+                <th>Jumlah MJKN</th>
+                <th>% Semua</th>
+                <th>% MJKN</th>
+                <th>Petugas Input</th>
+                <th>Tanggal Input</th>
+                <th>Bulan</th>
+                <th>Tahun</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php
+              $no = 1;
+              while ($r = mysqli_fetch_assoc($semua_antrian)) {
+                  echo "<tr>
+                          <td>{$no}</td>
+                          <td>{$r['id']}</td>
+                          <td>{$r['id_perusahaan']}</td>
+                          <td>{$r['jumlah_sep']}</td>
+                          <td>{$r['jumlah_antri']}</td>
+                          <td>{$r['jumlah_mjkn']}</td>
+                          <td>{$r['persen_all']}%</td>
+                          <td>{$r['persen_mjkn']}%</td>
+                          <td>{$r['petugas_input']}</td>
+                          <td>{$r['tanggal_input']}</td>
+                          <td>{$r['bulan']}</td>
+                          <td>{$r['tahun']}</td>
+                        </tr>";
+                  $no++;
+              }
+              ?>
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div class="modal-body">
-        <p id="isiKendala" class="mb-0"></p>
+
+      <!-- === Slide 2: Poli Antrian === -->
+      <div class="carousel-item">
+        <div class="slide-content">
+          <h4 class="text-center mb-3">🏥 Data Poli Antrian</h4>
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>ID</th>
+                <th>ID Poli</th>
+                <th>Bulan</th>
+                <th>Tahun</th>
+                <th>Jumlah SEP</th>
+                <th>Jumlah Antri</th>
+                <th>Jumlah MJKN</th>
+                <th>% Semua</th>
+                <th>% MJKN</th>
+                <th>Petugas Input</th>
+                <th>Tanggal Input</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php
+              $no = 1;
+              while ($r = mysqli_fetch_assoc($poli_antrian)) {
+                  echo "<tr>
+                          <td>{$no}</td>
+                          <td>{$r['id']}</td>
+                          <td>{$r['id_poli']}</td>
+                          <td>{$r['bulan']}</td>
+                          <td>{$r['tahun']}</td>
+                          <td>{$r['jumlah_sep']}</td>
+                          <td>{$r['jumlah_antri']}</td>
+                          <td>{$r['jumlah_mjkn']}</td>
+                          <td>{$r['persen_all']}%</td>
+                          <td>{$r['persen_mjkn']}%</td>
+                          <td>{$r['petugas_input']}</td>
+                          <td>{$r['tanggal_input']}</td>
+                        </tr>";
+                  $no++;
+              }
+              ?>
+            </tbody>
+          </table>
+        </div>
       </div>
+
+
+ <!-- === Slide 3: Satu Sehat === -->
+      <div class="carousel-item">
+        <div class="slide-content">
+          <h4 class="text-center mb-3">🩺 Data Satu Sehat</h4>
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>ID</th>
+                <th>Bulan</th>
+                <th>Tahun</th>
+                <th>Endpoint</th>
+                <th>Jumlah</th>
+                <th>Petugas Input</th>
+                <th>Tanggal Input</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php
+              $no = 1;
+              while ($r = mysqli_fetch_assoc($satu_sehat)) {
+                  echo "<tr>
+                          <td>{$no}</td>
+                          <td>{$r['id']}</td>
+                          <td>{$r['bulan']}</td>
+                          <td>{$r['tahun']}</td>
+                          <td>{$r['endpoint']}</td>
+                          <td>{$r['jumlah']}</td>
+                          <td>{$r['petugas_input']}</td>
+                          <td>{$r['tanggal_input']}</td>
+                        </tr>";
+                  $no++;
+              }
+              ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- === Slide 4: Maintanance Rutin === -->
+      <div class="carousel-item">
+        <div class="slide-content">
+          <h4 class="text-center mb-3">🧰 Data Maintanance Rutin</h4>
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>ID</th>
+                <th>Barang ID</th>
+                <th>User ID</th>
+                <th>Nama Teknisi</th>
+                <th>Waktu Input</th>
+                <th>Kondisi Fisik</th>
+                <th>Fungsi Perangkat</th>
+                <th>Catatan</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php
+              $no = 1;
+              while ($r = mysqli_fetch_assoc($maintanance_rutin)) {
+                  echo "<tr>
+                          <td>{$no}</td>
+                          <td>{$r['id']}</td>
+                          <td>{$r['barang_id']}</td>
+                          <td>{$r['user_id']}</td>
+                          <td>{$r['nama_teknisi']}</td>
+                          <td>{$r['waktu_input']}</td>
+                          <td>{$r['kondisi_fisik']}</td>
+                          <td>{$r['fungsi_perangkat']}</td>
+                          <td>{$r['catatan']}</td>
+                        </tr>";
+                  $no++;
+              }
+              ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- === Slide 5: Progres Kerja === -->
+      <div class="carousel-item">
+        <div class="slide-content">
+          <h4 class="text-center mb-3">📈 Data Progres Kerja</h4>
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>ID</th>
+                <th>Bulan</th>
+                <th>Tahun</th>
+                <th>Progres</th>
+                <th>Petugas Input</th>
+                <th>Tanggal Input</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php
+              $no = 1;
+              while ($r = mysqli_fetch_assoc($progres_kerja)) {
+                  echo "<tr>
+                          <td>{$no}</td>
+                          <td>{$r['id']}</td>
+                          <td>{$r['bulan']}</td>
+                          <td>{$r['tahun']}</td>
+                          <td>{$r['progres']}</td>
+                          <td>{$r['petugas_input']}</td>
+                          <td>{$r['tanggal_input']}</td>
+                        </tr>";
+                  $no++;
+              }
+              ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- === Slide 6: Berita Acara Hardware === -->
+      <div class="carousel-item">
+        <div class="slide-content">
+          <h4 class="text-center mb-3">🧾 Data Berita Acara Hardware</h4>
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>ID</th>
+                <th>Nomor Tiket</th>
+                <th>Nomor BA</th>
+                <th>Tanggal</th>
+                <th>Nama Pelapor</th>
+                <th>Unit Kerja</th>
+                <th>Kategori</th>
+                <th>Kendala</th>
+                <th>Teknisi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php
+              $no = 1;
+              while ($r = mysqli_fetch_assoc($berita_acara)) {
+                  echo "<tr>
+                          <td>{$no}</td>
+                          <td>{$r['id']}</td>
+                          <td>{$r['nomor_tiket']}</td>
+                          <td>{$r['nomor_ba']}</td>
+                          <td>{$r['tanggal']}</td>
+                          <td>{$r['nama_pelapor']}</td>
+                          <td>{$r['unit_kerja']}</td>
+                          <td>{$r['kategori']}</td>
+                          <td>{$r['kendala']}</td>
+                          <td>{$r['teknisi']}</td>
+                        </tr>";
+                  $no++;
+              }
+              ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- === Slide 7: Data ERM === -->
+      <div class="carousel-item">
+        <div class="slide-content">
+          <h4 class="text-center mb-3">💻 Data ERM</h4>
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>ID</th>
+                <th>ID Unit</th>
+                <th>Bulan</th>
+                <th>Tahun</th>
+                <th>Menu ERM</th>
+                <th>Petugas Input</th>
+                <th>Tanggal Input</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php
+              $no = 1;
+              while ($r = mysqli_fetch_assoc($data_erm)) {
+                  echo "<tr>
+                          <td>{$no}</td>
+                          <td>{$r['id']}</td>
+                          <td>{$r['id_unit']}</td>
+                          <td>{$r['bulan']}</td>
+                          <td>{$r['tahun']}</td>
+                          <td>{$r['menu_erm']}</td>
+                          <td>{$r['petugas_input']}</td>
+                          <td>{$r['tanggal_input']}</td>
+                        </tr>";
+                  $no++;
+              }
+              ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
+      <!-- === Tambahkan slide lainnya di bawah seperti yang kamu punya === -->
+      <!-- (Satu Sehat, Maintanance Rutin, Progres Kerja, Berita Acara, Data ERM) -->
+
+    </div>
+
+    <!-- Tombol navigasi -->
+    <button class="carousel-control-prev" type="button" data-bs-target="#reportCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#reportCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+
   </div>
 </div>
 
-
-
-<!-- Tombol Navigasi -->
-<button id="prevBtn" class="nav-btn"><i class="fas fa-chevron-left"></i></button>
-<button id="nextBtn" class="nav-btn"><i class="fas fa-chevron-right"></i></button>
-
-<footer>
-  <i class="far fa-clock"></i> <?= date('d F Y H:i') ?> | <b>Dashboard Pelaporan SIMRS</b>
-</footer>
-
-<script src="assets/modules/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script>
-$(document).ready(function() {
-  $(document).on('click', '.btn-lihat', function() {
-    let kendala = $(this).data('kendala');
-    $('#isiKendala').text(kendala || 'Tidak ada keterangan.');
-    $('#modalKendala').modal('show');
-  });
-  $('#modalKendala').on('hidden.bs.modal', function () {
-    $('body').removeClass('modal-open');
-    $('.modal-backdrop').remove();
-  });
-});
-</script>
-
-
-<script>
-const slides = document.querySelectorAll('.slide');
-let currentSlide = 0;
-function showSlide(n){
-  slides[currentSlide].classList.remove('active-slide');
-  currentSlide = (n + slides.length) % slides.length;
-  slides[currentSlide].classList.add('active-slide');
-}
-document.getElementById('nextBtn').onclick = () => showSlide(currentSlide + 1);
-document.getElementById('prevBtn').onclick = () => showSlide(currentSlide - 1);
-
-// === Chart SATUSEHAT ===
-const ctx = document.getElementById('chartSatuSehat').getContext('2d');
-const labels = [<?php mysqli_data_seek($data_satu, 0);
-while($row=mysqli_fetch_assoc($data_satu)){ echo "'".$row['endpoint']."',"; } ?>];
-<?php mysqli_data_seek($data_satu, 0); ?>
-const values = [<?php while($row=mysqli_fetch_assoc($data_satu)){ echo $row['total'].","; } ?>];
-new Chart(ctx,{
-  type:'line',
-  data:{
-    labels:labels,
-    datasets:[{
-      label:'Jumlah Terkirim',
-      data:values,
-      borderColor:'#00c8ff',
-      borderWidth:3,
-      fill:true,
-      backgroundColor:'rgba(0,200,255,0.1)',
-      pointBackgroundColor:'#00c8ff'
-    }]
-  },
-  options:{
-    plugins:{legend:{labels:{color:'white'}}},
-    scales:{
-      x:{ticks:{color:'white'},grid:{color:'rgba(255,255,255,0.1)'}},
-      y:{ticks:{color:'white'},grid:{color:'rgba(255,255,255,0.1)'}}
-    }
-  }
-});
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -1,39 +1,44 @@
 <?php
+session_start();
+include 'koneksi.php';
 require 'dompdf/autoload.inc.php';
 use Dompdf\Dompdf;
-include 'koneksi.php';
-session_start();
 
-// Fungsi ubah format tanggal ke Indonesia
+date_default_timezone_set('Asia/Jakarta');
+
+// === Fungsi format tanggal Indonesia ===
 function tgl_indo($tanggal) {
     if (!$tanggal || $tanggal == "0000-00-00") return "-";
     $bulan = [
-        1 => 'Januari',
-        'Februari',
-        'Maret',
-        'April',
-        'Mei',
-        'Juni',
-        'Juli',
-        'Agustus',
-        'September',
-        'Oktober',
-        'November',
-        'Desember'
+        1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ];
     $split = explode('-', date('Y-m-d', strtotime($tanggal)));
     return $split[2] . ' ' . $bulan[(int)$split[1]] . ' ' . $split[0];
 }
 
-// Ambil nama user login
+// === Fungsi hitung lama izin (durasi) ===
+function hitungLama($tanggal, $jam_keluar, $jam_kembali_real) {
+    if (empty($jam_keluar) || empty($jam_kembali_real)) {
+        return "-";
+    }
+    $mulai = strtotime("$tanggal $jam_keluar");
+    $selesai = strtotime($jam_kembali_real);
+    if ($selesai < $mulai) return "-";
+    $selisih = $selesai - $mulai;
+    $jam = floor($selisih / 3600);
+    $menit = floor(($selisih % 3600) / 60);
+    return ($jam > 0) ? "$jam jam $menit menit" : "$menit menit";
+}
+
+// === Ambil user login ===
 $nama_user = $_SESSION['nama'] ?? 'Petugas';
 
-// Ambil filter tanggal dari URL
+// === Filter tanggal dari URL ===
 $tgl_dari = $_GET['tgl_dari'] ?? '';
 $tgl_sampai = $_GET['tgl_sampai'] ?? '';
 
 $where = "WHERE 1=1";
-
 if (!empty($tgl_dari) && !empty($tgl_sampai)) {
     $where .= " AND tanggal BETWEEN '$tgl_dari' AND '$tgl_sampai'";
 } elseif (!empty($tgl_dari)) {
@@ -42,100 +47,119 @@ if (!empty($tgl_dari) && !empty($tgl_sampai)) {
     $where .= " AND tanggal <= '$tgl_sampai'";
 }
 
-// Ambil data izin keluar
+// === Ambil data izin keluar ===
 $query = mysqli_query($conn, "
     SELECT * FROM izin_keluar
     $where
     ORDER BY tanggal DESC, created_at DESC
 ");
 
+// === Ambil data perusahaan ===
 $q_perusahaan = mysqli_query($conn, "SELECT * FROM perusahaan LIMIT 1");
 $perusahaan = mysqli_fetch_assoc($q_perusahaan);
 
-// Format HTML resmi
+// === Konversi logo ke base64 ===
+$logoBase64 = '';
+if (!empty($perusahaan['logo'])) {
+    $logoPath = realpath('uploads/' . $perusahaan['logo']);
+    if ($logoPath && file_exists($logoPath)) {
+        $logoData = file_get_contents($logoPath);
+        $logoType = pathinfo($logoPath, PATHINFO_EXTENSION);
+        $logoBase64 = 'data:image/' . $logoType . ';base64,' . base64_encode($logoData);
+    }
+}
+
+// === Template HTML laporan ===
 $html = '
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <style>
   body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
-  table { border-collapse: collapse; width: 100%; font-size: 10px; }
-  th, td { border: 1px solid #000; padding: 4px; text-align: center; }
-  th { background: #eee; }
-  .header { text-align: center; margin-bottom: 15px; }
-  .judul { font-size: 16px; font-weight: bold; text-transform: uppercase; }
-  .subjudul { font-size: 12px; }
-  .pembuka { text-align: justify; margin-bottom: 15px; }
-  .penutup { text-align: justify; margin-top: 15px; }
-  .ttd { width: 200px; text-align: center; float: right; margin-top: 40px; }
+  .kop { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+  .kop img { float:left; max-height:70px; margin-right:10px; }
+  .kop .nama { font-size: 16px; font-weight:bold; text-transform:uppercase; }
+  .kop .alamat { font-size: 11px; margin-top:2px; }
+  h3 { text-align:center; margin-bottom:5px; clear:both; }
+  p { text-align:center; margin-top:0; font-size:11px; }
+  table { border-collapse: collapse; width: 100%; margin-top:10px; }
+  table, th, td { border: 1px solid #000; }
+  th, td { padding: 5px; font-size:10px; }
+  th { background: #f2f2f2; text-align:center; }
+  td.left { text-align:left; }
+  td.center { text-align:center; }
+  .ttd { width:250px; text-align:center; margin-top:40px; float:right; }
 </style>
 
-<div class="header">
-  <div class="judul">LAPORAN IZIN KELUAR</div>
-  <div class="subjudul">' . htmlspecialchars($perusahaan['nama_perusahaan']) . '</div>
-  <div class="subjudul">Periode: ' . 
-    (!empty($tgl_dari) ? tgl_indo($tgl_dari) : '-') . ' s/d ' . 
-    (!empty($tgl_sampai) ? tgl_indo($tgl_sampai) : '-') . 
-  '</div>
+<div class="kop">';
+if (!empty($logoBase64)) {
+    $html .= '<img src="'.$logoBase64.'" alt="Logo">';
+}
+$html .= '
+  <div class="nama">'.htmlspecialchars($perusahaan['nama_perusahaan'] ?? '-').'</div>
+  <div class="alamat">'
+      .htmlspecialchars($perusahaan['alamat'] ?? '-').', '
+      .htmlspecialchars($perusahaan['kota'] ?? '-').', '
+      .htmlspecialchars($perusahaan['provinsi'] ?? '-').'<br>
+      Telp: '.htmlspecialchars($perusahaan['kontak'] ?? '-').' | Email: '.htmlspecialchars($perusahaan['email'] ?? '-').'
+  </div>
 </div>
 
-<div class="pembuka">
-  Dengan hormat,<br>
-  Berikut kami sampaikan rekapitulasi data izin keluar pegawai pada periode tersebut di atas:
-</div>
+<h3>LAPORAN IZIN KELUAR PEGAWAI</h3>
+<p>Periode: '.(!empty($tgl_dari) ? tgl_indo($tgl_dari) : '-') .' s/d '.(!empty($tgl_sampai) ? tgl_indo($tgl_sampai) : '-').'</p>
 
 <table>
-  <thead>
-    <tr>
-      <th>No</th>
-      <th>Nama</th>
-      <th>Bagian</th>
-      <th>Tanggal</th>
-      <th>Jam Keluar</th>
-      <th>Jam Kembali</th>
-      <th>Keperluan</th>
-      <th>ACC Atasan</th>
-      <th>ACC SDM</th>
-    </tr>
-  </thead>
-  <tbody>';
+<thead>
+<tr>
+  <th>No</th>
+  <th>Nama</th>
+  <th>Bagian</th>
+  <th>Tanggal</th>
+  <th>Jam Keluar</th>
+  <th>Jam Kembali</th>
+  <th>Keperluan</th>
+  <th>ACC Atasan</th>
+  <th>ACC SDM</th>
+  <th>Lama</th>
+</tr>
+</thead>
+<tbody>';
 
 $no = 1;
-while ($row = mysqli_fetch_assoc($query)) {
-    $html .= '
-    <tr>
-      <td>' . $no++ . '</td>
-      <td>' . htmlspecialchars($row['nama']) . '</td>
-      <td>' . htmlspecialchars($row['bagian']) . '</td>
-      <td>' . tgl_indo($row['tanggal']) . '</td>
-      <td>' . htmlspecialchars($row['jam_keluar']) . '</td>
-      <td>' . ($row['jam_kembali'] ? htmlspecialchars($row['jam_kembali']) : '-') . '</td>
-      <td>' . htmlspecialchars($row['keperluan']) . '</td>
-      <td>' . ucfirst($row['status_atasan']) . '</td>
-      <td>' . ucfirst($row['status_sdm']) . '</td>
-    </tr>';
+if (mysqli_num_rows($query) > 0) {
+    while ($row = mysqli_fetch_assoc($query)) {
+        $lama = hitungLama($row['tanggal'], $row['jam_keluar'], $row['jam_kembali_real']);
+        $html .= "
+        <tr>
+          <td class='center'>{$no}</td>
+          <td class='left'>".htmlspecialchars($row['nama'])."</td>
+          <td class='center'>".htmlspecialchars($row['bagian'])."</td>
+          <td class='center'>".tgl_indo($row['tanggal'])."</td>
+          <td class='center'>".htmlspecialchars($row['jam_keluar'])."</td>
+          <td class='center'>".($row['jam_kembali_real'] ? htmlspecialchars($row['jam_kembali_real']) : '-')."</td>
+          <td class='left'>".htmlspecialchars($row['keperluan'])."</td>
+          <td class='center'>".ucfirst($row['status_atasan'])."</td>
+          <td class='center'>".ucfirst($row['status_sdm'])."</td>
+          <td class='center'>{$lama}</td>
+        </tr>";
+        $no++;
+    }
+} else {
+    $html .= "<tr><td colspan='10' align='center'>Tidak ada data</td></tr>";
 }
-
-if ($no === 1) {
-    $html .= '<tr><td colspan="9">Tidak ada data</td></tr>';
-}
-
 $html .= '
-  </tbody>
+</tbody>
 </table>
 
-<div class="penutup">
-  Demikian laporan ini kami buat untuk digunakan sebagaimana mestinya. Atas perhatian dan kerjasamanya, kami ucapkan terima kasih.
-</div>
-
 <div class="ttd">
-  ' . $perusahaan['kota'] . ', ' . tgl_indo(date('Y-m-d')) . '<br>
-  Hormat kami,<br><br><br><br>
-  <strong>' . htmlspecialchars($nama_user) . '</strong>
+  '.htmlspecialchars($perusahaan['kota'] ?? '-').', '.tgl_indo(date('Y-m-d')).'<br>
+  <div style="text-align:center;">Hormat kami,</div><br><br><br>
+  <strong>'.htmlspecialchars($nama_user).'</strong>
 </div>
 ';
 
-// Buat PDF
+// === Generate PDF ===
 $dompdf = new Dompdf();
 $dompdf->loadHtml($html);
-$dompdf->setPaper('A4', 'portrait'); // Surat resmi biasanya portrait
+$dompdf->setPaper('A4', 'landscape');
 $dompdf->render();
 $dompdf->stream("laporan_izin_keluar.pdf", ["Attachment" => false]);
+?>

@@ -29,6 +29,14 @@ $unit_kerja = mysqli_query($conn, "SELECT * FROM unit_kerja ORDER BY nama_unit A
 $bulan_list = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',
                7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
 $tahun_list = range(2020, 2035);
+// === Tentukan tab aktif ===
+$active_tab = 'input';
+if (!empty($_GET['bulan']) || !empty($_GET['tahun']) || !empty($_GET['id_unit'])) {
+    $active_tab = 'data'; // jika user klik Filter
+} elseif (!empty($_POST['simpan'])) {
+    $active_tab = 'input'; // jika user menyimpan data
+}
+
 
 // === Proses simpan data ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan'])) {
@@ -106,14 +114,22 @@ while ($r = mysqli_fetch_assoc($data_query)) {
 <div class="card-body">
 
 <ul class="nav nav-tabs" id="ermTab" role="tablist">
-<li class="nav-item"><a class="nav-link active" id="input-tab" data-toggle="tab" href="#input" role="tab"><i class="fas fa-edit"></i> Input Data</a></li>
-<li class="nav-item"><a class="nav-link" id="data-tab" data-toggle="tab" href="#data" role="tab"><i class="fas fa-table"></i> Data Tersimpan</a></li>
+  <li class="nav-item">
+    <a class="nav-link <?= $active_tab == 'input' ? 'active' : '' ?>" id="input-tab" data-toggle="tab" href="#input" role="tab">
+      <i class="fas fa-edit"></i> Input Data
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <?= $active_tab == 'data' ? 'active' : '' ?>" id="data-tab" data-toggle="tab" href="#data" role="tab">
+      <i class="fas fa-table"></i> Data Tersimpan
+    </a>
+  </li>
 </ul>
 
 <div class="tab-content mt-4">
 
 <!-- === Tab Input Data === -->
-<div class="tab-pane fade show active" id="input" role="tabpanel">
+<div class="tab-pane fade <?= $active_tab == 'input' ? 'show active' : '' ?>" id="input" role="tabpanel">
 <?php if ($notif): ?><div class="alert alert-danger"><?= $notif ?></div><?php endif; ?>
 <?php if (isset($_SESSION['flash_message'])): ?>
 <div id="notif-toast" class="alert alert-success text-center">
@@ -169,7 +185,7 @@ while ($r = mysqli_fetch_assoc($data_query)) {
 </div>
 
 <!-- === Tab Data Tersimpan === -->
-<div class="tab-pane fade" id="data" role="tabpanel">
+  <div class="tab-pane fade <?= $active_tab == 'data' ? 'show active' : '' ?>" id="data" role="tabpanel">
 <form class="form-inline mb-3" method="GET">
 <label class="mr-2">Unit:</label>
 <select name="id_unit" class="form-control mr-2">
@@ -291,5 +307,24 @@ foreach ($data_rows as $row){
 <script src="assets/js/stisla.js"></script>
 <script src="assets/js/scripts.js"></script>
 <script src="assets/js/custom.js"></script>
+
+<script>
+$(document).ready(function() {
+  // Simpan tab terakhir yang dibuka
+  $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+    localStorage.setItem('activeTabERM', $(e.target).attr('href'));
+  });
+
+  // Ambil tab terakhir yang disimpan di localStorage
+  var activeTab = localStorage.getItem('activeTabERM');
+  if (activeTab) {
+    $('#ermTab a[href="' + activeTab + '"]').tab('show');
+  }
+
+  // Efek notifikasi sukses
+  $('#notif-toast').fadeIn(300).delay(2000).fadeOut(500);
+});
+</script>
+
 </body>
 </html>

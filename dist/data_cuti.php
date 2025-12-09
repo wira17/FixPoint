@@ -17,6 +17,14 @@ if (mysqli_num_rows($result) == 0) {
   exit;
 }
 
+// === Ambil filter tanggal ===
+$tgl_awal = $_GET['tgl_awal'] ?? '';
+$tgl_akhir = $_GET['tgl_akhir'] ?? '';
+if (empty($tgl_awal) || empty($tgl_akhir)) {
+  $tgl_awal = date('Y-m-d');
+  $tgl_akhir = date('Y-m-d');
+}
+
 // === Proses ACC / Tolak ===
 if (isset($_GET['aksi'], $_GET['id'])) {
   $id   = intval($_GET['id']);
@@ -44,7 +52,7 @@ if (isset($_GET['aksi'], $_GET['id'])) {
   }
 }
 
-// === Ambil data pengajuan cuti (gunakan GROUP_CONCAT untuk daftar tanggal) ===
+// === Ambil data pengajuan cuti sesuai filter ===
 $sqlPengajuan = "
   SELECT p.*, u.nama AS nama_karyawan, mc.nama_cuti, d.nama AS nama_delegasi,
          GROUP_CONCAT(DATE_FORMAT(pc.tanggal,'%d-%m-%Y') ORDER BY pc.tanggal SEPARATOR ', ') AS tanggal_cuti
@@ -53,6 +61,7 @@ $sqlPengajuan = "
   JOIN master_cuti mc ON p.cuti_id = mc.id
   LEFT JOIN users d ON p.delegasi_id = d.id
   LEFT JOIN pengajuan_cuti_detail pc ON pc.pengajuan_id = p.id
+  WHERE pc.tanggal BETWEEN '$tgl_awal' AND '$tgl_akhir'
   GROUP BY p.id
   ORDER BY p.id DESC
 ";
@@ -101,14 +110,35 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
             </div>
 
             <div class="card-body">
+              
+              <!-- Filter Tanggal -->
+            <form method="GET" class="form-inline mb-3">
+  <label class="mr-2">Dari</label>
+  <input type="date" name="tgl_awal" class="form-control mr-2" value="<?= htmlspecialchars($tgl_awal) ?>">
+  <label class="mr-2">Sampai</label>
+  <input type="date" name="tgl_akhir" class="form-control mr-2" value="<?= htmlspecialchars($tgl_akhir) ?>">
+  <button type="submit" class="btn btn-primary mr-2">
+    <i class="fas fa-search"></i> Tampilkan
+  </button>
+  <a href="data_cuti.php" class="btn btn-secondary mr-2">
+    <i class="fas fa-sync-alt"></i> Reset
+  </a>
+
+  <!-- Tombol Cetak PDF -->
+  <a href="cetak_lap_cuti.php?tgl_awal=<?= urlencode($tgl_awal) ?>&tgl_akhir=<?= urlencode($tgl_akhir) ?>" 
+     target="_blank" 
+     class="btn btn-danger">
+     <i class="fas fa-file-pdf"></i> Cetak PDF
+  </a>
+</form>
+
+
               <!-- Tab menu -->
               <ul class="nav nav-tabs" id="cutiTab" role="tablist">
                 <li class="nav-item">
                   <a class="nav-link active" id="pengajuan-tab" data-toggle="tab" href="#pengajuan" role="tab">Data Pengajuan</a>
                 </li>
-                <li class="nav-item">
-                  <a class="nav-link" id="riwayat-tab" data-toggle="tab" href="#riwayat" role="tab">Riwayat Persetujuan</a>
-                </li>
+               
               </ul>
 
               <!-- Tab Content -->
@@ -150,9 +180,7 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
                               <?php endif; ?>
                             </td>
                             <td>
-                              <!-- Tombol Lihat -->
-                              <button class="btn btn-sm btn-info lihatDetail" 
-                                      data-id="<?= $row['id'] ?>">
+                              <button class="btn btn-sm btn-info lihatDetail" data-id="<?= $row['id'] ?>">
                                 <i class="fas fa-eye"></i>
                               </button>
                               <?php if ($row['status'] == "Menunggu Atasan"): ?>
@@ -171,39 +199,7 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
                   </div>
                 </div>
 
-                <!-- Riwayat -->
-                <div class="tab-pane fade" id="riwayat" role="tabpanel">
-                  <div class="table-responsive">
-                    <table class="table table-bordered cuti-table">
-                      <thead class="thead-light">
-                        <tr>
-                          <th>No</th>
-                          <th>Karyawan</th>
-                          <th>Jenis Cuti</th>
-                          <th>Tanggal</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <?php
-                        mysqli_data_seek($dataPengajuan, 0); // reset pointer result
-                        $no=1;
-                        while($row = mysqli_fetch_assoc($dataPengajuan)):
-                          if ($row['status'] != "Menunggu Atasan"): ?>
-                          <tr>
-                            <td><?= $no++ ?></td>
-                            <td><?= htmlspecialchars($row['nama_karyawan']) ?></td>
-                            <td><?= htmlspecialchars($row['nama_cuti']) ?></td>
-                            <td><?= htmlspecialchars($row['tanggal_cuti'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars($row['status']) ?></td>
-                          </tr>
-                        <?php endif; endwhile; ?>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
+             
             </div>
           </div>
 
@@ -239,11 +235,8 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
 <script src="assets/js/custom.js"></script>
 <script>
   $(document).ready(function() {
-    setTimeout(function() {
-      $("#flashMsg").fadeOut("slow");
-    }, 3500);
+    setTimeout(function() { $("#flashMsg").fadeOut("slow"); }, 3500);
 
-    // Klik lihat detail
     $(".lihatDetail").on("click", function(){
       var id = $(this).data("id");
       $("#detailContent").html("<p class='text-center'>⏳ Memuat data...</p>");
@@ -257,6 +250,5 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
     });
   });
 </script>
-
 </body>
 </html>

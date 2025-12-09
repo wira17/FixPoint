@@ -395,13 +395,28 @@ if ($resultLB) {
 
 <div class="col-lg-3 col-md-6 col-sm-6 col-12">
   <div class="card card-statistic-1" data-toggle="modal" data-target="#modalSemuaAntrian">
-    <div class="card-icon bg-primary"><i class="fas fa-snowflake"></i></div>
+    <div class="card-icon bg-primary">
+      <i class="fas fa-hospital-symbol"></i>
+    </div>
     <div class="card-wrap">
       <div class="card-header"><h4>Bridging BPJS</h4></div>
       <div class="card-body">% Semua Antrian</div>
     </div>
   </div>
 </div>
+
+<div class="col-lg-3 col-md-6 col-sm-6 col-12">
+  <div class="card card-statistic-1" data-toggle="modal" data-target="#modalIzinKeluar">
+    <div class="card-icon bg-primary">
+      <i class="fas fa-door-open"></i>
+    </div>
+    <div class="card-wrap">
+      <div class="card-header"><h4>Izin Keluar</h4></div>
+      <div class="card-body">Karyawan</div>
+    </div>
+  </div>
+</div>
+
 
 
 
@@ -713,6 +728,103 @@ if ($resultLB) {
           else:
           ?>
             <tr><td colspan="7">Belum ada data semua antrian</td></tr>
+          <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
+          <i class="fas fa-times"></i> Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Data Izin Keluar Hari Ini -->
+<div class="modal fade" id="modalIzinKeluar" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-xxl" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="fas fa-door-open"></i> Data Izin Keluar Pegawai (Hari Ini)</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+
+      <div class="modal-body table-responsive">
+        <table class="table table-bordered table-sm table-striped text-center">
+          <thead class="thead-light">
+            <tr>
+              <th style="width:50px;">No</th>
+              <th>Nama</th>
+              <th>Bagian</th>
+              <th>Tanggal</th>
+              <th>Jam Keluar</th>
+              <th>Jam Kembali</th>
+              <th>Keperluan</th>
+              <th>Status Atasan</th>
+              <th>Status SDM</th>
+              <th>Lama</th>
+            </tr>
+          </thead>
+          <tbody>
+          <?php
+          date_default_timezone_set('Asia/Jakarta');
+          $hari_ini = date('Y-m-d');
+
+          $query = mysqli_query($conn, "
+            SELECT * FROM izin_keluar 
+            WHERE tanggal = '$hari_ini' 
+            ORDER BY created_at DESC
+          ");
+
+          if (mysqli_num_rows($query) > 0):
+              $no = 1;
+              while ($row = mysqli_fetch_assoc($query)):
+                  $lama = "-";
+                  $class_lama = "";
+                  if (!empty($row['jam_keluar']) && !empty($row['jam_kembali_real'])) {
+                      $waktu_keluar  = strtotime($row['tanggal'].' '.$row['jam_keluar']);
+                      $waktu_kembali = strtotime($row['jam_kembali_real']);
+                      if ($waktu_kembali > $waktu_keluar) {
+                          $selisih = $waktu_kembali - $waktu_keluar;
+                          $jam = floor($selisih / 3600);
+                          $menit = floor(($selisih % 3600) / 60);
+                          $lama = sprintf("%02d jam %02d menit", $jam, $menit);
+                          if ($selisih > 3600) $class_lama = "text-danger font-weight-bold";
+                      }
+                  }
+
+                  $badgeAtasan = ($row['status_atasan'] == 'disetujui') ? 'success' :
+                                 (($row['status_atasan'] == 'ditolak') ? 'danger' : 'secondary');
+                  $badgeSdm    = ($row['status_sdm'] == 'disetujui') ? 'success' :
+                                 (($row['status_sdm'] == 'ditolak') ? 'danger' : 'secondary');
+          ?>
+            <tr>
+              <td><?= $no++; ?></td>
+              <td><?= htmlspecialchars($row['nama']); ?></td>
+              <td><?= htmlspecialchars($row['bagian']); ?></td>
+              <td><?= date('d-m-Y', strtotime($row['tanggal'])); ?></td>
+              <td><?= htmlspecialchars($row['jam_keluar']); ?></td>
+              <td><?= $row['jam_kembali_real'] ?: '-'; ?></td>
+              <td><?= htmlspecialchars($row['keperluan']); ?></td>
+              <td>
+                <span class="badge badge-<?= $badgeAtasan; ?>">
+                  <?= ucfirst($row['status_atasan']); ?>
+                </span><br>
+                <small><?= $row['waktu_acc_atasan'] ? date('d-m-Y H:i', strtotime($row['waktu_acc_atasan'])) : '-'; ?></small>
+              </td>
+              <td>
+                <span class="badge badge-<?= $badgeSdm; ?>">
+                  <?= ucfirst($row['status_sdm']); ?>
+                </span><br>
+                <small><?= $row['waktu_acc_sdm'] ? date('d-m-Y H:i', strtotime($row['waktu_acc_sdm'])) : '-'; ?></small>
+              </td>
+              <td class="<?= $class_lama; ?>"><?= $lama; ?></td>
+            </tr>
+          <?php endwhile; else: ?>
+            <tr><td colspan="11">Belum ada data izin keluar untuk hari ini (<?= date('d-m-Y'); ?>).</td></tr>
           <?php endif; ?>
           </tbody>
         </table>

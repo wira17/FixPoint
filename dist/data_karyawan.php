@@ -270,17 +270,20 @@ function lihatData(data){
     html += `<tr><th>BPJS Kerja</th><td>${k.no_bpjs_kerja||'-'}</td><th>Asuransi Tambahan</th><td>${k.asuransi_tambahan||'-'}</td></tr>`;
     html += '</table>';
 
-    // Dokumen Pendukung
+    // Dokumen Pendukung (hapus ID dan USER_ID)
     html += '<h5>Dokumen Pendukung</h5><ul>';
     const d = data.dokumen || {};
     for(let key in d){
-        if(d[key]) html += `<li>${key.toUpperCase()}: <a href="uploads/${d[key]}" target="_blank">Lihat</a></li>`;
+        if(d[key] && key !== 'id' && key !== 'user_id'){  // <- Hapus kolom ID & USER_ID
+            html += `<li>${key.toUpperCase()}: <a href="uploads/${d[key]}" target="_blank">Lihat</a></li>`;
+        }
     }
     html += '</ul>';
 
     $('#modalBody').html(html);
     new bootstrap.Modal(document.getElementById('modalLihat')).show();
 }
+    
 </script>
 </body>
 </html>

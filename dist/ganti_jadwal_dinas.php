@@ -71,6 +71,19 @@ if ($_SERVER['REQUEST_METHOD']=='POST' && isset($_POST['simpan'])){
     exit;
 }
 
+// Ambil nomor surat untuk dropdown
+$noSuratQuery = mysqli_query($conn, "
+    SELECT n.id, n.nomor_surat, u.nama_unit 
+    FROM no_surat n
+    LEFT JOIN unit_kerja u ON n.unit_id=u.id
+    ORDER BY n.id ASC
+");
+$noSuratList = [];
+while($ns = mysqli_fetch_assoc($noSuratQuery)) {
+    $noSuratList[] = $ns;
+}
+
+
 // === Ambil data pengajuan untuk tabel ===
 $dataPengajuan = mysqli_query($conn, "
     SELECT p.*, u.nama AS nama_karyawan, d.nama AS nama_pengganti, j.nama_jam

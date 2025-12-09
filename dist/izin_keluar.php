@@ -106,27 +106,32 @@ if (isset($_POST['simpan'])) {
 }
 
 // --- Proses update jam kembali real + WA ---
-if (isset($_GET['kembali'])) {
-    $id_kembali = intval($_GET['kembali']);
+// --- Proses update jam kembali real + keterangan + WA ---
+if (isset($_POST['simpan_kembali'])) {
+    $id_kembali = intval($_POST['id_kembali']);
+    $keterangan = trim($_POST['keterangan_kembali'] ?? '');
 
     // Ambil data izin
     $rowIzin = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM izin_keluar WHERE id=$id_kembali AND user_id=$user_id LIMIT 1"));
     if($rowIzin){
         $jam_sekarang = date('H:i:s');
         $update = $conn->prepare("UPDATE izin_keluar 
-                                   SET jam_kembali_real = NOW() 
-                                   WHERE id = ? AND user_id = ? AND (jam_kembali_real IS NULL OR jam_kembali_real = '')");
-        $update->bind_param("ii", $id_kembali, $user_id);
+            SET jam_kembali_real = NOW(), keterangan_kembali = ? 
+            WHERE id = ? AND user_id = ? AND (jam_kembali_real IS NULL OR jam_kembali_real = '')");
+        $update->bind_param("sii", $keterangan, $id_kembali, $user_id);
+
         if ($update->execute()) {
             // Kirim WA ke atasan
-           $nomor_atasan = getNomorAtasan($conn, $user['nama_atasan']);
+            $nomor_atasan = getNomorAtasan($conn, $user['nama_atasan']);
             $pesanWA = "🕒 *UPDATE JAM KEMBALI*\n";
             $pesanWA .= "Nama: " . $user['nama'] . "\n";
             $pesanWA .= "Jabatan: " . $user['jabatan'] . "\n";
             $pesanWA .= "Unit Kerja: " . $user['unit_kerja'] . "\n";
             $pesanWA .= "Jam Kembali Real: " . $jam_sekarang . " WIB\n";
-            $pesanWA .= "Keperluan: " . $rowIzin['keperluan'];
-
+            $pesanWA .= "Keperluan: " . $rowIzin['keperluan'] . "\n";
+            if (!empty($keterangan)) {
+                $pesanWA .= "Catatan: " . $keterangan . "\n";
+            }
 
             $wa_sent = false;
             if (!empty($nomor_atasan)) {
@@ -134,7 +139,7 @@ if (isset($_GET['kembali'])) {
             }
 
             $_SESSION['flash_message'] = $wa_sent
-                ? "✅ Jam kembali berhasil diperbarui dan WA terkirim ke atasan." 
+                ? "✅ Jam kembali berhasil diperbarui dan WA terkirim ke atasan."
                 : "✅ Jam kembali berhasil diperbarui, tapi WA gagal dikirim.";
         } else {
             $_SESSION['flash_message'] = "❌ Gagal memperbarui jam kembali.";
@@ -145,9 +150,17 @@ if (isset($_GET['kembali'])) {
     exit;
 }
 
+
 // --- Filter & Pagination Data Tersimpan ---
-// Ambil filter tanggal
-$tanggal_filter = $_GET['tanggal'] ?? date('Y-m-d');
+$tgl_awal = $_GET['tgl_awal'] ?? '';
+$tgl_akhir = $_GET['tgl_akhir'] ?? '';
+$tab_active = isset($_GET['tab']) ? $_GET['tab'] : 'input';
+
+// Jika tidak ada filter, gunakan tanggal hari ini
+if (empty($tgl_awal) || empty($tgl_akhir)) {
+    $tgl_awal = date('Y-m-d');
+    $tgl_akhir = date('Y-m-d');
+}
 
 // Pagination
 $limit = 10;
@@ -155,18 +168,28 @@ $page = isset($_GET['page']) ? max(1,intval($_GET['page'])) : 1;
 $start = ($page - 1) * $limit;
 
 // Hitung total data
-$stmtCount = $conn->prepare("SELECT COUNT(*) as total FROM izin_keluar WHERE user_id=? AND tanggal=?");
-$stmtCount->bind_param("is", $user_id, $tanggal_filter);
+$stmtCount = $conn->prepare("
+    SELECT COUNT(*) as total 
+    FROM izin_keluar 
+    WHERE user_id=? AND tanggal BETWEEN ? AND ?
+");
+$stmtCount->bind_param("iss", $user_id, $tgl_awal, $tgl_akhir);
 $stmtCount->execute();
 $resCount = $stmtCount->get_result()->fetch_assoc();
 $total_data = $resCount['total'];
 $total_page = ceil($total_data / $limit);
 
-// Ambil data izin keluar user berdasarkan filter & pagination
-$stmtIzin = $conn->prepare("SELECT * FROM izin_keluar WHERE user_id=? AND tanggal=? ORDER BY created_at DESC LIMIT ?,?");
-$stmtIzin->bind_param("isii", $user_id, $tanggal_filter, $start, $limit);
+// Ambil data izin keluar user berdasarkan periode & pagination
+$stmtIzin = $conn->prepare("
+    SELECT * FROM izin_keluar 
+    WHERE user_id=? AND tanggal BETWEEN ? AND ?
+    ORDER BY created_at DESC LIMIT ?,?
+");
+$stmtIzin->bind_param("issii", $user_id, $tgl_awal, $tgl_akhir, $start, $limit);
 $stmtIzin->execute();
 $data_izin = $stmtIzin->get_result();
+
+
 
 ?>
 
@@ -219,19 +242,52 @@ $data_izin = $stmtIzin->get_result();
 
     <div class="tab-content mt-3">
 <div class="tab-pane fade show active" id="input" role="tabpanel">
-<form method="POST" novalidate>
-<div class="form-group"><label>Jam Keluar</label><input type="time" name="jam_keluar" class="form-control" required /></div>
-<div class="form-group"><label>Jam Kembali</label><input type="time" name="jam_kembali" class="form-control" /></div>
-<div class="form-group"><label>Keperluan / Alasan</label><textarea name="keperluan" class="form-control" rows="3" required></textarea></div>
-<button type="submit" name="simpan" class="btn btn-primary"><i class="fas fa-save"></i> Simpan</button>
-</form>
+  <form method="POST" novalidate>
+    <div class="row">
+      <!-- Kolom Kiri -->
+      <div class="col-md-6">
+        <div class="form-group">
+          <label>Jam Keluar</label>
+          <input type="time" name="jam_keluar" class="form-control" required />
+        </div>
+        <div class="form-group">
+          <label>Jam Kembali (Estimasi)</label>
+          <input type="time" name="jam_kembali" class="form-control" />
+        </div>
+      </div>
+
+      <!-- Kolom Kanan -->
+      <div class="col-md-6">
+        <div class="form-group">
+          <label>Keperluan / Alasan</label>
+          <textarea name="keperluan" class="form-control" rows="5" required></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-right">
+      <button type="submit" name="simpan" class="btn btn-primary">
+        <i class="fas fa-save"></i> Simpan
+      </button>
+    </div>
+  </form>
 </div>
 
+
 <div class="tab-pane fade" id="data" role="tabpanel">
-  <form method="GET" class="form-inline mb-2">
-    <input type="date" name="tanggal" class="form-control mr-2" value="<?= htmlspecialchars($tanggal_filter) ?>">
-    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filter</button>
-  </form>
+<form method="GET" class="form-inline mb-2">
+  <input type="hidden" name="tab" value="data">
+  <label class="mr-2">Dari</label>
+  <input type="date" name="tgl_awal" class="form-control mr-2" value="<?= htmlspecialchars($tgl_awal) ?>">
+  
+  <label class="mr-2">Sampai</label>
+  <input type="date" name="tgl_akhir" class="form-control mr-2" value="<?= htmlspecialchars($tgl_akhir) ?>">
+  
+  <button type="submit" class="btn btn-primary">
+    <i class="fas fa-search"></i> Tampilkan
+  </button>
+</form>
+
 
   <div class="table-responsive">
   <table class="table table-bordered izin-table">
@@ -258,13 +314,23 @@ $data_izin = $stmtIzin->get_result();
     <td><?= htmlspecialchars($izin['jam_keluar']) ?></td>
     <td class="text-center"><?= htmlspecialchars($izin['jam_kembali']) ?></td>
     <td class="text-center">
-      <?php
-      if (empty($izin['jam_kembali_real'])) {
-        echo '<a href="izin_keluar.php?kembali=' . $izin['id'] . '" class="btn btn-sm btn-warning" onclick="return confirm(\'Yakin ingin update jam kembali sekarang?\')"><i class="fas fa-undo"></i> Kembali / Update</a>';
-      } else {
-        echo htmlspecialchars($izin['jam_kembali_real']);
-      }
-      ?>
+
+
+  <?php if (empty($izin['jam_kembali_real'])): ?>
+  <button type="button" class="btn btn-sm btn-warning btn-kembali" 
+          data-id="<?= $izin['id'] ?>" 
+          data-toggle="modal" 
+          data-target="#modalKembali">
+    <i class="fas fa-undo"></i> Kembali / Update
+  </button>
+<?php else: ?>
+  <?= htmlspecialchars($izin['jam_kembali_real']) ?><br>
+  <?php if (!empty($izin['keterangan_kembali'])): ?>
+    <small><i><?= htmlspecialchars($izin['keterangan_kembali']) ?></i></small>
+  <?php endif; ?>
+<?php endif; ?>
+
+    
     </td>
     <td><?= htmlspecialchars($izin['keperluan']) ?></td>
     <td><?= htmlspecialchars(date('d-m-Y H:i', strtotime($izin['created_at']))) ?></td>
@@ -361,6 +427,34 @@ $data_izin = $stmtIzin->get_result();
 </div>
 
 
+<!-- Modal Input Keterangan Kembali -->
+<div class="modal fade" id="modalKembali" tabindex="-1" role="dialog" aria-labelledby="modalKembaliLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <form id="formKembali" method="POST">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title" id="modalKembaliLabel"><i class="fas fa-undo"></i> Catat Jam Kembali</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="id_kembali" id="id_kembali">
+          <div class="form-group">
+            <label for="keterangan_kembali">Keterangan (Opsional)</label>
+            <textarea name="keterangan_kembali" id="keterangan_kembali" class="form-control" rows="3" placeholder="Tuliskan keterangan tambahan..."></textarea>
+          </div>
+          <p class="text-muted mb-0"><small>Jam kembali akan dicatat otomatis sesuai waktu saat ini.</small></p>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" name="simpan_kembali" class="btn btn-warning"><i class="fas fa-save"></i> Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
 <script src="assets/modules/jquery.min.js"></script>
 <script src="assets/modules/popper.js"></script>
 <script src="assets/modules/bootstrap/js/bootstrap.min.js"></script>
@@ -372,7 +466,29 @@ $data_izin = $stmtIzin->get_result();
 <script>
 $(document).ready(function(){
     setTimeout(function(){$("#flashMsg").fadeOut("slow");},3000);
+
+    // Aktifkan tab sesuai parameter ?tab=
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    if (activeTab === 'data') {
+        $('#input-tab').removeClass('active');
+        $('#input').removeClass('show active');
+        $('#data-tab').addClass('active');
+        $('#data').addClass('show active');
+    }
 });
 </script>
+
+
+<script>
+$(document).on('click', '.btn-kembali', function(){
+    var id = $(this).data('id');
+    $('#id_kembali').val(id);
+    $('#keterangan_kembali').val('');
+});
+</script>
+
+
+
 </body>
 </html>

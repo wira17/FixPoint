@@ -3,7 +3,7 @@
 
 // Path file sidebar.php dan hash aslinya (saat masih utuh)
 $sidebar_path = __DIR__ . '/sidebar.php';
-$expected_hash = 'd79e8ec84efb03e3b9a370bb1bdda5eabbf25a7a'; 
+$expected_hash = 'd6abef026e10386ad15af008bcffabcba08c0553'; 
 
 // Cek file sidebar.php masih ada?
 if (!file_exists($sidebar_path)) {
@@ -21,4 +21,3 @@ if ($current_hash !== $expected_hash) {
         Silakan hubungi pengembang di <strong>0821 7784 6209</strong> untuk informasi lebih lanjut.
     </h2>');
 }
-

@@ -1,216 +1,164 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 require 'dompdf/autoload.inc.php';
 use Dompdf\Dompdf;
 include 'koneksi.php';
 
-// Require library QR Code
-include '../phpqrcode/qrlib.php';
-
-
 if (!isset($_GET['id'])) {
-    die('ID izin keluar tidak ditemukan.');
+    die('ID izin tidak ditemukan.');
 }
 
 $id = intval($_GET['id']);
 
-// Query data izin keluar termasuk nik atasan dan sdm
+// Ambil data izin
 $query = mysqli_query($conn, "
-    SELECT ik.*, 
-           u.nik, u.nama, u.jabatan, u.unit_kerja,
-           atasan.nama AS nama_atasan, atasan.nik AS nik_atasan,
-           sdm.nama AS nama_sdm, sdm.nik AS nik_sdm,
-           ik.status_atasan
-    FROM izin_keluar ik
-    JOIN users u ON ik.user_id = u.id
-    LEFT JOIN users atasan ON ik.acc_oleh_atasan = atasan.id
-    LEFT JOIN users sdm ON ik.acc_oleh_sdm = sdm.id
-    WHERE ik.id = '$id'
+    SELECT i.*, u.nik, u.nama, u.jabatan, u.unit_kerja 
+    FROM izin_keluar i
+    JOIN users u ON i.user_id = u.id
+    WHERE i.id = '$id'
 ");
-
 $data = mysqli_fetch_assoc($query);
-
 if (!$data) {
-    die('Data izin keluar tidak ditemukan.');
+    die('Data izin tidak ditemukan.');
 }
 
 // Ambil data perusahaan
 $q_perusahaan = mysqli_query($conn, "SELECT * FROM perusahaan LIMIT 1");
 $perusahaan = mysqli_fetch_assoc($q_perusahaan);
 
-// Fungsi generate QR Code base64
-function generateQrBase64($text) {
-    ob_start();
-    QRcode::png($text, null, QR_ECLEVEL_L, 3); // output PNG ke output buffer
-    $imageString = ob_get_contents();
-    ob_end_clean();
-    return 'data:image/png;base64,' . base64_encode($imageString);
+// === Data Pemohon ===
+$ttd_pemohon = '';
+if (!empty($data['nik'])) {
+    $q_pemohon = mysqli_query($conn, "SELECT ttd FROM users WHERE nik = '{$data['nik']}' LIMIT 1");
+    if ($pemohon = mysqli_fetch_assoc($q_pemohon)) {
+        $ttd_pemohon = !empty($pemohon['ttd']) ? 'ttd/' . $pemohon['ttd'] : '';
+    }
 }
 
-// Generate QR untuk atasan dan sdm (gunakan NIK atau nama sesuai kebutuhan)
-$qr_atasan = !empty($data['nik_atasan']) ? generateQrBase64($data['nik_atasan']) : '';
-$qr_sdm = !empty($data['nik_sdm']) ? generateQrBase64($data['nik_sdm']) : '';
+// === Data SDM ===
+$nama_sdm = '________________';
+$nik_sdm = '';
+$ttd_sdm = '';
 
-// HTML dan CSS (saya sesuaikan bagian footer untuk menampilkan barcode)
+if (!empty($data['acc_oleh_sdm'])) {
+    $q_sdm = mysqli_query($conn, "SELECT nama, nik, ttd FROM users WHERE id = '{$data['acc_oleh_sdm']}' LIMIT 1");
+    if ($sdm = mysqli_fetch_assoc($q_sdm)) {
+        $nama_sdm = htmlspecialchars($sdm['nama']);
+        $nik_sdm = htmlspecialchars($sdm['nik']);
+        $ttd_sdm = !empty($sdm['ttd']) ? 'ttd/' . $sdm['ttd'] : '';
+    }
+}
+
+// === Data Atasan ===
+$nama_atasan = '________________';
+$nik_atasan = '';
+$ttd_atasan = '';
+
+if (!empty($data['acc_oleh_atasan'])) {
+    $q_atasan = mysqli_query($conn, "SELECT nama, nik, ttd FROM users WHERE id = '{$data['acc_oleh_atasan']}' LIMIT 1");
+    if ($atasan = mysqli_fetch_assoc($q_atasan)) {
+        $nama_atasan = htmlspecialchars($atasan['nama']);
+        $nik_atasan = htmlspecialchars($atasan['nik']);
+        $ttd_atasan = !empty($atasan['ttd']) ? 'ttd/' . $atasan['ttd'] : '';
+    }
+}
+
+// === Format jam kembali real
+$jamKembaliRealFormatted = '-';
+if (!empty($data['jam_kembali_real'])) {
+    $jamKembaliRealFormatted = date('d-m-Y / H:i:s', strtotime($data['jam_kembali_real'])) . ' WIB';
+}
+
+// === Hitung lama izin keluar
+$lamaIzin = '-';
+$warnaDurasi = '#000';
+if (!empty($data['jam_keluar']) && !empty($data['jam_kembali_real'])) {
+    $jamKeluar = strtotime($data['jam_keluar']);
+    $jamKembaliReal = strtotime($data['jam_kembali_real']);
+    $selisihMenit = round(($jamKembaliReal - $jamKeluar) / 60);
+    $jam = floor($selisihMenit / 60);
+    $menit = $selisihMenit % 60;
+    $lamaIzin = sprintf('%02d jam %02d menit', $jam, $menit);
+    if ($selisihMenit > 60) $warnaDurasi = 'red';
+}
+
+// === CSS dan konten utama
 $html = '
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <style>
   body { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
-  .ticket {
-    border: 2px dashed #000;
-    padding: 15px;
-    width: 100%;
-    box-sizing: border-box;
-    position: relative;
-  }
-  .header {
-    text-align: center;
-    margin-bottom: 10px;
-  }
-  .header .nama-perusahaan {
-    font-size: 14px;
-    font-weight: bold;
-    text-transform: uppercase;
-  }
-  .header .alamat {
-    font-size: 10px;
-  }
-  .title {
-    text-align: center;
-    font-size: 13px;
-    font-weight: bold;
-    margin: 10px 0;
-    text-transform: uppercase;
-  }
-  .info {
-    margin: 10px 0;
-  }
-  .info div {
-    margin-bottom: 4px;
-  }
-  .label {
-    display: inline-block;
-    width: 120px;
-    font-weight: bold;
-  }
-  .keterangan {
-    margin-top: 10px;
-    font-size: 10px;
-  }
-
-  /* Footer signature */
-  .footer-table {
-    width: 100%;
-    margin-top: 18px;
-    font-size: 10px;
-    border-collapse: collapse;
-  }
-  .footer-table td {
-    vertical-align: top;
-    padding: 0 20px;
-    width: 50%;
-    text-align: center;
-  }
-  .footer-label {
-    font-weight: bold;
-    padding-bottom: 8px;
-  }
-  .footer-spacer {
-    height: 40px;
-  }
-  .sig-line {
-    display: block;
-    border-bottom: 1px solid #000;
-    padding: 4px 4px 2px 4px;
-    min-width: 160px;
-    margin: 0 auto;
-  }
-  .footer-name, .footer-nik {
-    font-weight: bold;
-    margin: 0;
-  }
-  .footer-nik {
-    font-size: 9px;
-    margin-top: 2px;
-  }
-  .barcode {
-    margin-top: 4px;
-    width: 80px;
-    height: 80px;
-  }
+  .surat { border: 2px dashed #000; padding: 15px; }
+  .header { text-align: center; margin-bottom: 10px; }
+  .header .nama-perusahaan { font-size: 14px; font-weight: bold; text-transform: uppercase; }
+  .header .alamat { font-size: 10px; }
+  .title { text-align: center; font-size: 13px; font-weight: bold; margin: 10px 0; text-transform: uppercase; }
+  .info { margin: 10px 0; }
+  .info div { margin-bottom: 4px; }
+  .label { display: inline-block; width: 130px; font-weight: bold; }
+  .ttd-table { width: 100%; text-align: center; font-size: 10px; margin-top: 40px; }
+  .nama { text-decoration: underline; font-weight: bold; }
+  .space { height: 60px; }
+  .ttd-img { width: 80px; height: auto; margin-bottom: -15px; }
 </style>
 
-<div class="ticket">
+<div class="surat">
   <div class="header">
     <div class="nama-perusahaan">' . htmlspecialchars($perusahaan['nama_perusahaan']) . '</div>
     <div class="alamat">' . htmlspecialchars($perusahaan['alamat']) . ', ' . htmlspecialchars($perusahaan['kota']) . ', ' . htmlspecialchars($perusahaan['provinsi']) . '<br>
     Telp: ' . htmlspecialchars($perusahaan['kontak']) . ' | Email: ' . htmlspecialchars($perusahaan['email']) . '</div>
   </div>
 
-  <div class="title">Formulir Izin Keluar</div>
+  <div class="title">SURAT IZIN KELUAR PEGAWAI</div>
 
-<div class="info">
-    <div><span class="label">Tanggal Keluar</span>: ' . date('d-m-Y', strtotime($data['tanggal'])) . '</div>
-    <div><span class="label">Jam Keluar</span>: ' . htmlspecialchars($data['jam_keluar']) . '</div>
-    <div><span class="label">Jam Kembali</span>: ' . htmlspecialchars($data['jam_kembali']) . '</div>
-    <div><span class="label">Update Jam Kembali</span>: ' . htmlspecialchars($data['jam_kembali_real']) . '</div>
+  <div class="info">
+    <div><span class="label">Nomor Izin</span>: IZIN/' . date('Ymd', strtotime($data['tanggal'])) . '/' . str_pad($data['id'], 3, '0', STR_PAD_LEFT) . '</div>
+    <div><span class="label">Tanggal Izin</span>: ' . date('d-m-Y', strtotime($data['tanggal'])) . '</div>
     <div><span class="label">NIK</span>: ' . htmlspecialchars($data['nik']) . '</div>
     <div><span class="label">Nama</span>: ' . htmlspecialchars($data['nama']) . '</div>
     <div><span class="label">Jabatan</span>: ' . htmlspecialchars($data['jabatan']) . '</div>
-    <div><span class="label">Unit</span>: ' . htmlspecialchars($data['unit_kerja']) . '</div>
-    <div><span class="label">Status Atasan</span>: ' . htmlspecialchars(ucfirst($data['status_atasan'])) . '</div>
-</div>
+    <div><span class="label">Unit Kerja</span>: ' . htmlspecialchars($data['unit_kerja']) . '</div>
+    <div><span class="label">Jam Keluar</span>: ' . htmlspecialchars($data['jam_keluar']) . ' WIB</div>
+    <div><span class="label">Jam Kembali</span>: ' . $jamKembaliRealFormatted . '</div>
+    <div><span class="label">Lama Izin</span>: <span style="color:' . $warnaDurasi . ';">' . $lamaIzin . '</span></div>
+  </div>
 
+  <div><strong>Keperluan:</strong><br>' . nl2br(htmlspecialchars($data['keperluan'])) . '</div>
+  ' . (!empty($data['keterangan_kembali']) ? '<div><strong>Keterangan:</strong><br>' . nl2br(htmlspecialchars($data['keterangan_kembali'])) . '</div>' : '') . '
 
-  <div class="keterangan"><strong>Keperluan:</strong><br>' . nl2br(htmlspecialchars($data['keperluan'])) . '</div>
-
-  <!-- Footer: tabel tanda tangan dengan barcode -->
-  <table class="footer-table">
+  <table class="ttd-table">
     <tr>
-      <td>
-        <div class="footer-label">Atasan Langsung</div>
-      </td>
-      <td>
-        <div class="footer-label">Bagian SDM</div>
-      </td>
+      <td>Pemohon</td>
+      <td>Mengetahui,<br>Atasan Langsung</td>
+      <td>Disetujui,<br>Bagian SDM</td>
+    </tr>
+    <tr class="space">
+      <td>' . (!empty($ttd_pemohon) && file_exists($ttd_pemohon) ? '<img src="' . $ttd_pemohon . '" class="ttd-img">' : '') . '</td>
+      <td>' . (!empty($ttd_atasan) && file_exists($ttd_atasan) ? '<img src="' . $ttd_atasan . '" class="ttd-img">' : '') . '</td>
+      <td>' . (!empty($ttd_sdm) && file_exists($ttd_sdm) ? '<img src="' . $ttd_sdm . '" class="ttd-img">' : '') . '</td>
     </tr>
     <tr>
-      <td class="footer-spacer"></td>
-      <td class="footer-spacer"></td>
-    </tr>
-    <tr>
-      <td>
-        <span class="sig-line">' . (!empty($data['nama_atasan']) ? htmlspecialchars($data['nama_atasan']) : '&nbsp;') . '</span>
-        <p class="footer-nik">' . (!empty($data['nik_atasan']) ? 'NIK: ' . htmlspecialchars($data['nik_atasan']) : '') . '</p>
-      </td>
-      <td>
-        <span class="sig-line">' . (!empty($data['nama_sdm']) ? htmlspecialchars($data['nama_sdm']) : '&nbsp;') . '</span>
-        <p class="footer-nik">' . (!empty($data['nik_sdm']) ? 'NIK: ' . htmlspecialchars($data['nik_sdm']) : '') . '</p>
-      </td>
+      <td><div class="nama">' . htmlspecialchars($data['nama']) . '</div><div>NIK: ' . htmlspecialchars($data['nik']) . '</div></td>
+      <td><div class="nama">' . $nama_atasan . '</div><div>' . (!empty($nik_atasan) ? 'NIK: ' . $nik_atasan : '&nbsp;') . '</div></td>
+      <td><div class="nama">' . $nama_sdm . '</div><div>' . (!empty($nik_sdm) ? 'NIK: ' . $nik_sdm : '&nbsp;') . '</div></td>
     </tr>
   </table>
 </div>
 ';
 
-// Generate PDF
+// === Generate PDF ===
 $dompdf = new Dompdf();
 $dompdf->loadHtml($html);
 $dompdf->setPaper('A5', 'portrait');
 $dompdf->render();
 
-// Optional watermark
+// Watermark opsional
 $canvas = $dompdf->getCanvas();
-if (method_exists($canvas, 'set_opacity')) {
-    $canvas->set_opacity(0.07);
-}
+$canvas->set_opacity(0.08);
 $imagePath = 'assets/watermark.jpg';
 if (file_exists($imagePath)) {
-    $width = 400;
-    $height = 200;
+    $width = 400; $height = 200;
     $x = ($canvas->get_width() - $width) / 2;
     $y = ($canvas->get_height() - $height) / 2;
     $canvas->image($imagePath, $x, $y, $width, $height);
 }
 
-$dompdf->stream('izin_keluar_' . $data['id'] . '.pdf', ['Attachment' => false]);
+$dompdf->stream('izin_keluar_' . $data['nik'] . '.pdf', ['Attachment' => false]);
+?>

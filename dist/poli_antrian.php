@@ -28,6 +28,13 @@ $poliklinik = mysqli_query($conn, "SELECT * FROM poliklinik ORDER BY nama_poli A
 $bulan_list = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',
                7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
 $tahun_list = range(2020, 2030);
+// Tentukan tab aktif dari parameter filter
+$active_tab = 'input';
+if (!empty($_GET['bulan']) || !empty($_GET['tahun']) || !empty($_GET['id_poli'])) {
+    $active_tab = 'data'; // Jika user klik Filter
+} elseif (!empty($_POST['simpan'])) {
+    $active_tab = 'input'; // Saat simpan, kembali ke tab Input
+}
 
 // Proses simpan data
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan'])) {
@@ -130,14 +137,22 @@ while($row = mysqli_fetch_assoc($data_query)){
 <div class="card-body">
 
 <ul class="nav nav-tabs" id="antrianTab" role="tablist">
-<li class="nav-item"><a class="nav-link active" id="input-tab" data-toggle="tab" href="#input" role="tab"><i class="fas fa-edit"></i> Input Data</a></li>
-<li class="nav-item"><a class="nav-link" id="data-tab" data-toggle="tab" href="#data" role="tab"><i class="fas fa-table"></i> Data Tersimpan</a></li>
+  <li class="nav-item">
+    <a class="nav-link <?= $active_tab == 'input' ? 'active' : '' ?>" id="input-tab" data-toggle="tab" href="#input" role="tab">
+      <i class="fas fa-edit"></i> Input Data
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <?= $active_tab == 'data' ? 'active' : '' ?>" id="data-tab" data-toggle="tab" href="#data" role="tab">
+      <i class="fas fa-table"></i> Data Tersimpan
+    </a>
+  </li>
 </ul>
 
 <div class="tab-content mt-4">
 
 <!-- Tab Input Data -->
-<div class="tab-pane fade show active" id="input" role="tabpanel">
+<div class="tab-pane fade <?= $active_tab == 'input' ? 'show active' : '' ?>" id="input" role="tabpanel">
 <?php if ($notif): ?><div class="alert alert-danger"><?= $notif ?></div><?php endif; ?>
 <?php if (isset($_SESSION['flash_message'])): ?>
 <div id="notif-toast" class="alert alert-success text-center">
@@ -201,7 +216,7 @@ while($row = mysqli_fetch_assoc($data_query)){
 </div>
 
 <!-- Tab Data Tersimpan -->
-<div class="tab-pane fade" id="data" role="tabpanel">
+<div class="tab-pane fade <?= $active_tab == 'data' ? 'show active' : '' ?>" id="data" role="tabpanel">
 <form class="form-inline mb-3" method="GET">
 <label class="mr-2"><i class="fas fa-clinic-medical"></i> Filter Poli:</label>
 <select name="id_poli" class="form-control mr-2">

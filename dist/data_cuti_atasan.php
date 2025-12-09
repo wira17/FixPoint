@@ -13,7 +13,11 @@ $query = "SELECT 1 FROM akses_menu
           WHERE akses_menu.user_id = '$user_id' AND menu.file_menu = '$current_file'";
 $result = mysqli_query($conn, $query) or die("Error cek akses: " . mysqli_error($conn));
 if (mysqli_num_rows($result) == 0) {
-  echo "<script>alert('Anda tidak memiliki akses ke halaman ini.'); window.location.href='dashboard.php';</script>";
+  $_SESSION['flash_message'] = [
+    'type' => 'error',
+    'text' => 'Anda tidak memiliki akses ke halaman ini.'
+  ];
+  header("Location: dashboard.php");
   exit;
 }
 
@@ -34,7 +38,7 @@ if (isset($_GET['aksi'], $_GET['id'])) {
   }
 
   if ($status && $status_atasan) {
-    $acc_by = $_SESSION['nama'] ?? 'Sistem'; // nama user yang login
+    $acc_by = $_SESSION['nama'] ?? 'Sistem';
 
     $sql = "UPDATE pengajuan_cuti 
             SET status='" . mysqli_real_escape_string($conn, $status) . "',
@@ -45,9 +49,15 @@ if (isset($_GET['aksi'], $_GET['id'])) {
     $update = mysqli_query($conn, $sql);
 
     if (!$update) {
-      $_SESSION['flash_message'] = "❌ Gagal update status: " . mysqli_error($conn);
+      $_SESSION['flash_message'] = [
+        'type' => 'error',
+        'text' => '❌ Gagal memperbarui status: ' . mysqli_error($conn)
+      ];
     } else {
-      $_SESSION['flash_message'] = "✅ Status atasan diperbarui menjadi <b>$status_atasan</b> oleh <b>$acc_by</b>.";
+      $_SESSION['flash_message'] = [
+        'type' => 'success',
+        'text' => "✅ Status atasan diperbarui menjadi <b>$status_atasan</b> oleh <b>$acc_by</b>."
+      ];
     }
 
     header("Location: data_cuti_atasan.php");
@@ -82,11 +92,36 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
   <style>
     .cuti-table { font-size: 13px; white-space: nowrap; }
     .cuti-table th, .cuti-table td { padding: 6px 10px; vertical-align: middle; }
+
+    /* === Notifikasi di tengah layar (center screen) === */
     .flash-center {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-      z-index: 1050; min-width: 320px; max-width: 90%; text-align: center;
-      padding: 15px; border-radius: 8px; font-weight: 500;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2000;
+      min-width: 320px;
+      max-width: 90%;
+      text-align: center;
+      padding: 25px 25px;
+      border-radius: 12px;
+      font-weight: 500;
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+      animation: popIn 0.4s ease-out;
+    }
+    .flash-success { background-color: #28a745; }
+    .flash-error { background-color: #dc3545; }
+
+    .flash-center i {
+      display: block;
+      font-size: 45px;
+      margin-bottom: 10px;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: translate(-50%, -60%) scale(0.9); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
     }
   </style>
 </head>
@@ -100,20 +135,26 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
       <section class="section">
         <div class="section-body">
 
+          <!-- === Notifikasi tengah layar === -->
           <?php if (isset($_SESSION['flash_message'])): ?>
-            <div class="alert alert-info flash-center" id="flashMsg">
-              <?= $_SESSION['flash_message'] ?>
+            <?php 
+              $msg = $_SESSION['flash_message'];
+              $class = $msg['type'] === 'success' ? 'flash-success' : 'flash-error';
+              $icon = $msg['type'] === 'success' ? 'fa-check-circle' : 'fa-times-circle';
+            ?>
+            <div class="flash-center <?= $class ?>" id="flashMsg">
+              <i class="fas <?= $icon ?>"></i>
+              <div><?= $msg['text'] ?></div>
             </div>
             <?php unset($_SESSION['flash_message']); ?>
           <?php endif; ?>
 
           <div class="card">
             <div class="card-header">
-              <h4 class="mb-0">Persetujuan Cuti (Atasan)</h4>
+              <h4 class="mb-0"><i class="fas fa-user-check"></i> Persetujuan Cuti (Atasan)</h4>
             </div>
 
             <div class="card-body">
-              <!-- Data Pengajuan -->
               <div class="table-responsive">
                 <table class="table table-striped table-bordered cuti-table">
                   <thead class="thead-dark">
@@ -169,7 +210,6 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
                   </tbody>
                 </table>
               </div>
-
             </div>
           </div>
 
@@ -192,7 +232,7 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
   $(document).ready(function() {
     setTimeout(function() {
       $("#flashMsg").fadeOut("slow");
-    }, 3500);
+    }, 4000);
   });
 </script>
 

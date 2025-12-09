@@ -5,7 +5,7 @@ include 'koneksi.php';
 date_default_timezone_set('Asia/Jakarta');
 
 $user_id = $_SESSION['user_id'] ?? 0;
-$nama_user = $_SESSION['nama'] ?? 'Sistem'; // ambil nama login
+$nama_user = $_SESSION['nama'] ?? 'Sistem';
 $current_file = basename(__FILE__); 
 
 // === Cek akses menu ===
@@ -44,9 +44,9 @@ if (isset($_GET['aksi'], $_GET['id'])) {
     $update = mysqli_query($conn, $sql);
 
     if (!$update) {
-      $_SESSION['flash_message'] = "❌ Gagal update status: " . mysqli_error($conn);
+      $_SESSION['flash_message'] = "error:Gagal memperbarui status: " . mysqli_error($conn);
     } else {
-      $_SESSION['flash_message'] = "✅ Status delegasi diperbarui menjadi <b>$status_delegasi</b> oleh <b>$nama_user</b>.";
+      $_SESSION['flash_message'] = "success:Status delegasi <b>$status_delegasi</b> berhasil diperbarui oleh <b>$nama_user</b>.";
     }
 
     header("Location: data_cuti_delegasi.php");
@@ -81,11 +81,42 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
   <style>
     .cuti-table { font-size: 13px; white-space: nowrap; }
     .cuti-table th, .cuti-table td { padding: 6px 10px; vertical-align: middle; }
+
+    /* === Flash Message Tengah === */
     .flash-center {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-      z-index: 1050; min-width: 320px; max-width: 90%; text-align: center;
-      padding: 15px; border-radius: 8px; font-weight: 500;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      min-width: 350px;
+      max-width: 90%;
+      padding: 25px 30px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #fff;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .flash-center i {
+      font-size: 26px;
+    }
+
+    .flash-success {
+      background: linear-gradient(135deg, #28a745, #218838);
+    }
+    .flash-error {
+      background: linear-gradient(135deg, #dc3545, #b52a38);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translate(-50%, -55%); }
+      to { opacity: 1; transform: translate(-50%, -50%); }
     }
   </style>
 </head>
@@ -100,8 +131,14 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
         <div class="section-body">
 
           <?php if (isset($_SESSION['flash_message'])): ?>
-            <div class="alert alert-info flash-center" id="flashMsg">
-              <?= $_SESSION['flash_message'] ?>
+            <?php
+              list($type, $msg) = explode(':', $_SESSION['flash_message'], 2);
+              $class = $type === 'success' ? 'flash-success' : 'flash-error';
+              $icon = $type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
+            ?>
+            <div class="flash-center <?= $class ?>" id="flashMsg">
+              <i class="fas <?= $icon ?>"></i>
+              <div><?= $msg ?></div>
             </div>
             <?php unset($_SESSION['flash_message']); ?>
           <?php endif; ?>
@@ -168,7 +205,6 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
                   </tbody>
                 </table>
               </div>
-
             </div>
           </div>
 
@@ -180,20 +216,13 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
 
 <!-- JS -->
 <script src="assets/modules/jquery.min.js"></script>
-<script src="assets/modules/popper.js"></script>
 <script src="assets/modules/bootstrap/js/bootstrap.min.js"></script>
-<script src="assets/modules/nicescroll/jquery.nicescroll.min.js"></script>
-<script src="assets/modules/moment.min.js"></script>
-<script src="assets/js/stisla.js"></script>
-<script src="assets/js/scripts.js"></script>
-<script src="assets/js/custom.js"></script>
 <script>
   $(document).ready(function() {
     setTimeout(function() {
       $("#flashMsg").fadeOut("slow");
-    }, 3500);
+    }, 4000);
   });
 </script>
-
 </body>
 </html>

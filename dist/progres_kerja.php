@@ -57,6 +57,14 @@ if ($filter_tahun) $where[] = "tahun = $filter_tahun";
 $where_sql = count($where) > 0 ? 'WHERE ' . implode(' AND ', $where) : '';
 
 $data_query = mysqli_query($conn, "SELECT * FROM progres_kerja $where_sql ORDER BY tahun DESC, bulan DESC");
+
+// === Tentukan tab aktif ===
+$active_tab = 'input';
+if (!empty($_GET['bulan']) || !empty($_GET['tahun'])) {
+    $active_tab = 'data'; // jika user klik Filter
+} elseif (!empty($_POST['simpan'])) {
+    $active_tab = 'input'; // jika user menyimpan data
+}
 ?>
 
 <!DOCTYPE html>
@@ -89,14 +97,22 @@ $data_query = mysqli_query($conn, "SELECT * FROM progres_kerja $where_sql ORDER 
 <div class="card-body">
 
 <ul class="nav nav-tabs" id="progresTab" role="tablist">
-  <li class="nav-item"><a class="nav-link active" id="input-tab" data-toggle="tab" href="#input" role="tab"><i class="fas fa-edit"></i> Input Progres</a></li>
-  <li class="nav-item"><a class="nav-link" id="data-tab" data-toggle="tab" href="#data" role="tab"><i class="fas fa-table"></i> Data Tersimpan</a></li>
+  <li class="nav-item">
+    <a class="nav-link <?= $active_tab == 'input' ? 'active' : '' ?>" id="input-tab" data-toggle="tab" href="#input" role="tab">
+      <i class="fas fa-edit"></i> Input Progres
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <?= $active_tab == 'data' ? 'active' : '' ?>" id="data-tab" data-toggle="tab" href="#data" role="tab">
+      <i class="fas fa-table"></i> Data Tersimpan
+    </a>
+  </li>
 </ul>
 
 <div class="tab-content mt-4">
 
 <!-- TAB INPUT -->
-<div class="tab-pane fade show active" id="input" role="tabpanel">
+<div class="tab-pane fade <?= $active_tab == 'input' ? 'show active' : '' ?>" id="input" role="tabpanel">
 <?php if ($notif): ?><div class="alert alert-danger"><?= $notif ?></div><?php endif; ?>
 <?php if (isset($_SESSION['flash_message'])): ?>
 <div id="notif-toast" class="alert alert-success text-center">
@@ -140,7 +156,7 @@ $data_query = mysqli_query($conn, "SELECT * FROM progres_kerja $where_sql ORDER 
 </div>
 
 <!-- TAB DATA -->
-<div class="tab-pane fade" id="data" role="tabpanel">
+<div class="tab-pane fade <?= $active_tab == 'data' ? 'show active' : '' ?>" id="data" role="tabpanel">
 <form class="form-inline mb-3" method="GET">
   <label class="mr-2"><i class="fas fa-calendar-alt"></i> Bulan:</label>
   <select name="bulan" class="form-control mr-2">
@@ -207,8 +223,21 @@ $data_query = mysqli_query($conn, "SELECT * FROM progres_kerja $where_sql ORDER 
 <script src="assets/js/stisla.js"></script>
 <script src="assets/js/scripts.js"></script>
 <script src="assets/js/custom.js"></script>
+
 <script>
-$(function(){
+$(document).ready(function(){
+  // Simpan tab terakhir yang dibuka
+  $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+    localStorage.setItem('activeTabProgres', $(e.target).attr('href'));
+  });
+
+  // Ambil tab terakhir dari localStorage
+  var activeTab = localStorage.getItem('activeTabProgres');
+  if (activeTab) {
+    $('#progresTab a[href="' + activeTab + '"]').tab('show');
+  }
+
+  // Tampilkan notifikasi sukses
   var toast = $('#notif-toast');
   if(toast.length){
     toast.fadeIn(300).delay(2000).fadeOut(500);

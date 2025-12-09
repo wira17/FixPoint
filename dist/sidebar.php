@@ -1,5 +1,4 @@
 <?php
-session_start();
 include 'koneksi.php';
 $user_id = $_SESSION['user_id'];
 
@@ -159,6 +158,14 @@ while ($row = mysqli_fetch_assoc($result)) {
   </li>
   <?php endif; ?>
 
+    <?php if (in_array('data_permintaan_hapus_data_simrs.php', $allowed_files)): ?>
+  <li>
+    <a class="nav-link" href="data_permintaan_hapus_data_simrs.php">
+      <i class="fas fa-file-alt" style="color:#007bff;"></i> <span>Permintaan Hapus Data</span>
+    </a>
+  </li>
+  <?php endif; ?>
+
   <?php if (in_array('berita_acara_it.php', $allowed_files)): ?>
   <li>
     <a class="nav-link" href="berita_acara_it.php">
@@ -247,6 +254,188 @@ while ($row = mysqli_fetch_assoc($result)) {
 
   </ul>
 </li>
+
+
+<!-- SURAT -->
+<li class="menu-header">SURAT</li>
+<li class="dropdown">
+  <a href="#" class="nav-link has-dropdown">
+    <i class="fas fa-envelope-open-text"></i> <span>SURAT</span>
+  </a>
+
+  <ul class="dropdown-menu">
+
+
+        <?php if (in_array('izin_keluar.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="izin_keluar.php">
+        <i class="fas fa-door-open"></i> <span>Izin Keluar</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('pengajuan_cuti.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="pengajuan_cuti.php">
+        <i class="fas fa-file-signature"></i> <span>Pengajuan Cuti</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+     <?php if (in_array('hapus_data.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="hapus_data.php">
+        <i class="fas fa-file-signature"></i> <span>Hapus Data SIMRS</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+
+
+
+        <?php if (in_array('exit_clearance.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="exit_clearance.php">
+        <i class="fas fa-sign-out-alt"></i> <span>Exit Clearance</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('ganti_jadwal_dinas.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="ganti_jadwal_dinas.php">
+        <i class="fas fa-calendar-plus"></i> <span>Ganti Jadwal</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+
+
+
+
+
+     <?php if (in_array('master_no_surat.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="master_no_surat.php">
+        <i class="fas fa-calendar-plus"></i> <span>Nomor Surat</span>
+      </a>
+    </li>
+    <?php endif; ?>
+  </ul>
+</li>
+
+
+
+ <!-- HR / SDM -->
+<li class="menu-header">HR / SDM</li>
+<li class="dropdown">
+  <a href="#" class="nav-link has-dropdown"><i class="fas fa-users-cog"></i> <span>HR / SDM</span></a>
+  <ul class="dropdown-menu">
+
+
+
+ <?php if (in_array('data_cuti_delegasi.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_cuti_delegasi.php">
+        <i class="fas fa-user-friends"></i> <span>Acc Cuti Delegasi</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('data_cuti_atasan.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_cuti_atasan.php">
+        <i class="fas fa-user-tie"></i> <span>Acc Cuti Atasan</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('data_cuti_hrd.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_cuti_hrd.php">
+        <i class="fas fa-user-shield"></i> <span>Acc Cuti HRD</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+
+       <?php if (in_array('acc_keluar_atasan.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="acc_keluar_atasan.php">
+        <i class="fas fa-user-tie"></i> <span>ACC Keluar Atasan</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+    <?php if (in_array('acc_keluar_sdm.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="acc_keluar_sdm.php">
+        <i class="fas fa-user-check"></i> <span>ACC Keluar SDM</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+ <?php if (in_array('data_cuti.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_cuti.php">
+        <i class="fas fa-database"></i> <span>Data Cuti</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+
+        <?php if (in_array('data_izin_keluar.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_izin_keluar.php">
+        <i class="fas fa-clipboard-check"></i> <span>Data Izin Keluar</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+      <?php if (in_array('rekap_catatan_kerja.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="rekap_catatan_kerja.php">
+        <i class="fas fa-clipboard-list"></i> <span>Rekap Kerja</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+
+
+ <?php if (in_array('master_cuti.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="master_cuti.php">
+        <i class="fas fa-calendar-alt"></i> <span>Master Cuti</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+ <?php if (in_array('jatah_cuti.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="jatah_cuti.php">
+        <i class="fas fa-calendar-check"></i> <span>Jatah Cuti</span>
+      </a>
+    </li>
+<?php endif; ?>
+
+
+
+
+
+
+
+
+    <?php if (in_array('data_karyawan.php', $allowed_files)): ?>
+    <li>
+      <a class="nav-link" href="data_karyawan.php">
+        <i class="fas fa-id-badge"></i> <span>Data Karyawan</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
+  </ul>
+</li>
+
 
 
 
@@ -439,6 +628,15 @@ while ($row = mysqli_fetch_assoc($result)) {
         <li>
           <a class="nav-link" href="input_soal.php">
             <i class="fas fa-comments"></i> <span>Input Soal</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+
+          <?php if (in_array('master_komponen_praktek.php', $allowed_files)): ?>
+        <li>
+          <a class="nav-link" href="master_komponen_praktek.php">
+            <i class="fas fa-comments"></i> <span>Komponen Ujian Praktek</span>
           </a>
         </li>
         <?php endif; ?>
@@ -761,8 +959,6 @@ while ($row = mysqli_fetch_assoc($result)) {
 
 
 
-
-
 <!-- LAPORAN KERJA -->
 <li class="menu-header">LAPORAN KERJA</li>
 <li class="dropdown">
@@ -849,126 +1045,7 @@ while ($row = mysqli_fetch_assoc($result)) {
 
 
 
-   <!-- HR / SDM -->
-<li class="menu-header">HR / SDM</li>
-<li class="dropdown">
-  <a href="#" class="nav-link has-dropdown"><i class="fas fa-users-cog"></i> <span>HR / SDM</span></a>
-  <ul class="dropdown-menu">
-
-    <?php if (in_array('data_karyawan.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="data_karyawan.php">
-        <i class="fas fa-id-badge"></i> <span>Data Karyawan</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('exit_clearance.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="exit_clearance.php">
-        <i class="fas fa-sign-out-alt"></i> <span>Exit Clearance</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('rekap_catatan_kerja.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="rekap_catatan_kerja.php">
-        <i class="fas fa-clipboard-list"></i> <span>Rekap Kerja</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('master_cuti.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="master_cuti.php">
-        <i class="fas fa-calendar-alt"></i> <span>Master Cuti</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('pengajuan_cuti.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="pengajuan_cuti.php">
-        <i class="fas fa-file-signature"></i> <span>Pengajuan Cuti</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('jatah_cuti.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="jatah_cuti.php">
-        <i class="fas fa-calendar-check"></i> <span>Jatah Cuti</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('data_cuti.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="data_cuti.php">
-        <i class="fas fa-database"></i> <span>Data Cuti</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('data_cuti_delegasi.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="data_cuti_delegasi.php">
-        <i class="fas fa-user-friends"></i> <span>Acc Cuti Delegasi</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('data_cuti_atasan.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="data_cuti_atasan.php">
-        <i class="fas fa-user-tie"></i> <span>Acc Cuti Atasan</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('data_cuti_hrd.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="data_cuti_hrd.php">
-        <i class="fas fa-user-shield"></i> <span>Acc Cuti HRD</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('izin_keluar.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="izin_keluar.php">
-        <i class="fas fa-door-open"></i> <span>Izin Keluar</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('data_izin_keluar.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="data_izin_keluar.php">
-        <i class="fas fa-clipboard-check"></i> <span>Data Izin Keluar</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('acc_keluar_atasan.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="acc_keluar_atasan.php">
-        <i class="fas fa-user-tie"></i> <span>ACC Keluar Atasan</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('acc_keluar_sdm.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="acc_keluar_sdm.php">
-        <i class="fas fa-user-check"></i> <span>ACC Keluar SDM</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-  </ul>
-</li>
+  
 
 
 
@@ -1002,13 +1079,7 @@ while ($row = mysqli_fetch_assoc($result)) {
     </li>
     <?php endif; ?>
 
-     <?php if (in_array('ganti_jadwal_dinas.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="ganti_jadwal_dinas.php">
-        <i class="fas fa-calendar-plus"></i> <span>Ganti Jadwal</span>
-      </a>
-    </li>
-    <?php endif; ?>
+
 
     <?php if (in_array('data_jadwal.php', $allowed_files)): ?>
     <li>
@@ -1030,124 +1101,6 @@ while ($row = mysqli_fetch_assoc($result)) {
 </li>
 
 
-
-
-  <!-- REKRUITMENT -->
-<li class="menu-header">REKRUITMENT ONLINE</li>
-<li class="dropdown">
-  <a href="#" class="nav-link has-dropdown"><i class="fas fa-users-cog"></i> <span>REKRUITMENT</span></a>
-  <ul class="dropdown-menu">
-
-    <?php if (in_array('data_pelamar.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="data_pelamar.php">
-        <i class="fas fa-id-card"></i> <span>Data Pelamar</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-     <?php if (in_array('lamaran.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="lamaran.php">
-        <i class="fas fa-calendar-alt"></i> <span>Lamaran Masuk</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('lowongan.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="lowongan.php">
-        <i class="fas fa-calendar-alt"></i> <span>Lowongan Kerja</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-   
-
-  </ul>
-</li>
-
-
- <!-- WEBSITE ONLINE -->
-<li class="menu-header">WEBSITE ONLINE</li>
-<li class="dropdown">
-  <a href="#" class="nav-link has-dropdown"><i class="fas fa-globe"></i> <span>WEBSITE</span></a>
-  <ul class="dropdown-menu">
-
-    <?php if (in_array('dokter.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="dokter.php">
-        <i class="fas fa-user-md"></i> <span>Data Dokter</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('sejarah.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="sejarah.php">
-        <i class="fas fa-history"></i> <span>Sejarah</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('visi_misi.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="visi_misi.php">
-        <i class="fas fa-bullseye"></i> <span>Visi Misi</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('kerja_sama.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="kerja_sama.php">
-        <i class="fas fa-handshake"></i> <span>Kerja Sama</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('fasilitas.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="fasilitas.php">
-        <i class="fas fa-hospital"></i> <span>Fasilitas</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('berita.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="berita.php">
-        <i class="fas fa-newspaper"></i> <span>Berita</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('kuisioner.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="kuisioner.php">
-        <i class="fas fa-clipboard-list"></i> <span>Kuisioner</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('dokumentasi.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="dokumentasi.php">
-        <i class="fas fa-camera"></i> <span>Dokumentasi</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-    <?php if (in_array('kontak.php', $allowed_files)): ?>
-    <li>
-      <a class="nav-link" href="kontak.php">
-        <i class="fas fa-envelope"></i> <span>Kontak</span>
-      </a>
-    </li>
-    <?php endif; ?>
-
-  </ul>
-</li>
 
 
 <!-- MASTER DATA -->
@@ -1248,6 +1201,14 @@ while ($row = mysqli_fetch_assoc($result)) {
       <li>
         <a class="nav-link" href="master_poliklinik.php">
           <i class="fas fa-briefcase"></i> <span>Poliklinik</span>
+        </a>
+      </li>
+    <?php endif; ?>
+
+     <?php if (in_array('master_status_karyawan.php', $allowed_files)): ?>
+      <li>
+        <a class="nav-link" href="master_status_karyawan.php">
+          <i class="fas fa-briefcase"></i> <span>Status Karyawan</span>
         </a>
       </li>
     <?php endif; ?>

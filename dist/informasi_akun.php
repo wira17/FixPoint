@@ -4,9 +4,6 @@ include 'koneksi.php';
 date_default_timezone_set('Asia/Jakarta');
 
 $user_id = $_SESSION['user_id'];
-$current_file = basename(__FILE__);
-
-
 
 // Ambil data user
 $query = mysqli_query($conn, "SELECT * FROM users WHERE id = $user_id");
@@ -21,6 +18,7 @@ $data_user = [
     'unit_kerja' => $row['unit_kerja'],
     'atasan_id' => $row['atasan_id'],
     'status' => $row['status'],
+    'status_karyawan_id' => $row['status_karyawan_id'],
     'created_at' => $row['created_at']
 ];
 
@@ -39,12 +37,26 @@ $daftar_atasan_arr = [];
 $res = mysqli_query($conn, "SELECT id, nama FROM users WHERE id != $user_id");
 while($r = mysqli_fetch_assoc($res)) $daftar_atasan_arr[] = $r;
 
+// Ambil daftar status karyawan
+$daftar_status_arr = [];
+$res = mysqli_query($conn, "SELECT id, nama_status FROM status_karyawan ORDER BY nama_status ASC");
+while($r = mysqli_fetch_assoc($res)) $daftar_status_arr[] = $r;
+
 // Nama atasan
 $nama_atasan = '-';
 if (!empty($data_user['atasan_id'])) {
-  $q_atasan = mysqli_query($conn, "SELECT nama FROM users WHERE id = '{$data_user['atasan_id']}' LIMIT 1");
-  $r_atasan = mysqli_fetch_assoc($q_atasan);
-  $nama_atasan = $r_atasan['nama'] ?? '-';
+    $q_atasan = mysqli_query($conn, "SELECT nama FROM users WHERE id = '{$data_user['atasan_id']}' LIMIT 1");
+    $r_atasan = mysqli_fetch_assoc($q_atasan);
+    $nama_atasan = $r_atasan['nama'] ?? '-';
+}
+
+// Nama status karyawan
+$status_karyawan = '-';
+foreach($daftar_status_arr as $s){
+    if($s['id'] == $data_user['status_karyawan_id']){
+        $status_karyawan = $s['nama_status'];
+        break;
+    }
 }
 
 // Proses update
@@ -56,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     $jabatan_id = $_POST['jabatan'];
     $unit_kerja_id = $_POST['unit_kerja'];
     $atasan_id = intval($_POST['atasan_id']);
+    $status_karyawan_id = intval($_POST['status_karyawan_id']);
     $password_baru = trim($_POST['password_baru'] ?? '');
 
     // Nama jabatan & unit
@@ -73,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 
     $query_update = "UPDATE users SET 
         nama='$nama', email='$email', no_hp='$no_hp', 
-        jabatan='$jabatan_nama', unit_kerja='$unit_nama', atasan_id=$atasan_id";
+        jabatan='$jabatan_nama', unit_kerja='$unit_nama', atasan_id=$atasan_id, status_karyawan_id=$status_karyawan_id";
     if (!empty($password_baru)) {
         $query_update .= ", password_hash='".password_hash($password_baru, PASSWORD_DEFAULT)."'";
     }
@@ -90,10 +103,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     $data_user['jabatan'] = $jabatan_nama;
     $data_user['unit_kerja'] = $unit_nama;
     $data_user['atasan_id'] = $atasan_id;
+    $data_user['status_karyawan_id'] = $status_karyawan_id;
     $nama_atasan = $nama_atasan;
+    $status_karyawan = '';
+    foreach($daftar_status_arr as $s){
+        if($s['id'] == $status_karyawan_id){
+            $status_karyawan = $s['nama_status'];
+            break;
+        }
+    }
 }
 
-// Definisi field & icon untuk tampilan kartu
 $fields = [
     'nik'=>['label'=>'NIK','icon'=>'bi-credit-card'],
     'nama'=>['label'=>'Nama','icon'=>'bi-person'],
@@ -102,7 +122,7 @@ $fields = [
     'jabatan'=>['label'=>'Jabatan','icon'=>'bi-briefcase'],
     'unit_kerja'=>['label'=>'Unit Kerja','icon'=>'bi-building'],
     'atasan'=>$nama_atasan ? ['label'=>'Atasan','icon'=>'bi-person-check'] : ['label'=>'Atasan','icon'=>'bi-person-check'],
-    'status'=>['label'=>'Status Akun','icon'=>'bi-toggle-on'],
+    'status_karyawan'=>['label'=>'Status Karyawan','icon'=>'bi-toggle-on'],
     'created_at'=>['label'=>'Daftar Akun','icon'=>'bi-calendar-check']
 ];
 ?>
@@ -155,6 +175,15 @@ $fields = [
           </select>
         </div>
         <div class="col-md-6 mb-2">
+          <label><i class="bi bi-toggle-on"></i> Status Karyawan</label>
+          <select name="status_karyawan_id" class="form-control" required>
+            <option value="">- Pilih Status -</option>
+            <?php foreach($daftar_status_arr as $s): ?>
+            <option value="<?= $s['id'] ?>" <?= ($data_user['status_karyawan_id']==$s['id'])?'selected':'' ?>><?= htmlspecialchars($s['nama_status']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="col-md-6 mb-2">
           <label><i class="bi bi-key"></i> Password Baru</label>
           <input type="password" name="password_baru" class="form-control" placeholder="Kosongkan jika tidak ingin ganti">
         </div>
@@ -172,7 +201,17 @@ $fields = [
         <ul class="list-group list-group-flush mb-2">
           <li class="list-group-item">
             <i class="bi <?= $f['icon'] ?>"></i> <strong><?= $f['label'] ?></strong> : 
-            <?= $key=='atasan'?$nama_atasan:($key=='created_at'?date('d-m-Y H:i',strtotime($data_user[$key])):htmlspecialchars($data_user[$key])) ?>
+            <?php 
+              if($key=='atasan'){
+                  echo $nama_atasan;
+              } elseif($key=='status_karyawan'){
+                  echo $status_karyawan;
+              } elseif($key=='created_at'){
+                  echo date('d-m-Y H:i',strtotime($data_user[$key]));
+              } else {
+                  echo htmlspecialchars($data_user[$key]);
+              }
+            ?>
           </li>
         </ul>
       </div>

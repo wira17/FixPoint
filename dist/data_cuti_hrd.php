@@ -17,7 +17,7 @@ if (mysqli_num_rows($result) == 0) {
   exit;
 }
 
-// === Pastikan kolom waktu ada (jika belum ada, coba buat otomatis) ===
+// === Pastikan kolom waktu ada ===
 $timeCols = [
   'acc_delegasi_time' => 'acc_delegasi_by',
   'acc_atasan_time'   => 'acc_atasan_by',
@@ -28,11 +28,7 @@ foreach ($timeCols as $col => $after) {
     $check = mysqli_query($conn, "SHOW COLUMNS FROM `pengajuan_cuti` LIKE '".mysqli_real_escape_string($conn,$col)."'");
     if ($check && mysqli_num_rows($check) == 0) {
         $alter = "ALTER TABLE `pengajuan_cuti` ADD COLUMN `{$col}` DATETIME NULL AFTER `{$after}`";
-        if (!mysqli_query($conn, $alter)) {
-            // jika gagal membuat kolom, hentikan dan tunjukkan instruksi manual
-            die("Gagal membuat kolom {$col}: " . mysqli_error($conn) . 
-                ".\nSilakan tambahkan secara manual menjalankan SQL berikut di database:\n\n{$alter}\n");
-        }
+        mysqli_query($conn, $alter);
     }
 }
 
@@ -46,14 +42,14 @@ if (isset($_GET['aksi'], $_GET['id'])) {
     $status = "Disetujui HRD";
     $status_hrd = "Disetujui";
 
-    // === Hitung lama cuti (jumlah tanggal di detail) ===
+    // Hitung lama cuti
     $q = mysqli_query($conn, "
       SELECT p.karyawan_id, p.cuti_id, COUNT(pc.id) AS lama_hari
       FROM pengajuan_cuti p
       LEFT JOIN pengajuan_cuti_detail pc ON pc.pengajuan_id = p.id
       WHERE p.id='$id'
       GROUP BY p.id
-    ") or die("Error ambil cuti: " . mysqli_error($conn));
+    ");
     $cuti = mysqli_fetch_assoc($q);
 
     if ($cuti) {
@@ -65,27 +61,27 @@ if (isset($_GET['aksi'], $_GET['id'])) {
       // cek jatah cuti
       $cek = mysqli_query($conn, "
         SELECT * FROM jatah_cuti 
-        WHERE karyawan_id='".mysqli_real_escape_string($conn,$karyawan_id)."' 
-          AND cuti_id='".mysqli_real_escape_string($conn,$cuti_id)."' 
-          AND tahun='".mysqli_real_escape_string($conn,$tahun)."'
+        WHERE karyawan_id='$karyawan_id' 
+          AND cuti_id='$cuti_id' 
+          AND tahun='$tahun'
         LIMIT 1
-      ") or die("Error cek jatah: " . mysqli_error($conn));
+      ");
       $jatah = mysqli_fetch_assoc($cek);
 
       if ($jatah) {
         if ($jatah['sisa_hari'] >= $lama_hari) {
           $newSisa = $jatah['sisa_hari'] - $lama_hari;
-          mysqli_query($conn, "UPDATE jatah_cuti 
-                               SET sisa_hari='".mysqli_real_escape_string($conn,$newSisa)."' 
-                               WHERE id='".mysqli_real_escape_string($conn,$jatah['id'])."'") 
-                               or die("Error update jatah: " . mysqli_error($conn));
+          mysqli_query($conn, "UPDATE jatah_cuti SET sisa_hari='$newSisa' WHERE id='{$jatah['id']}'");
+          $_SESSION['flash_type'] = "success";
           $_SESSION['flash_message'] = "✅ Cuti disetujui HRD oleh <b>$acc_by</b>. Sisa cuti sekarang <b>$newSisa hari</b>.";
         } else {
+          $_SESSION['flash_type'] = "error";
           $_SESSION['flash_message'] = "❌ Sisa cuti hanya {$jatah['sisa_hari']} hari, tapi diajukan $lama_hari hari.";
           header("Location: data_cuti_hrd.php");
           exit;
         }
       } else {
+        $_SESSION['flash_type'] = "error";
         $_SESSION['flash_message'] = "❌ Jatah cuti untuk karyawan ini belum diinput.";
         header("Location: data_cuti_hrd.php");
         exit;
@@ -94,21 +90,25 @@ if (isset($_GET['aksi'], $_GET['id'])) {
   } elseif ($aksi === 'tolak') {
     $status = "Ditolak HRD";
     $status_hrd = "Ditolak";
+    $_SESSION['flash_type'] = "error";
+    $_SESSION['flash_message'] = "❌ Pengajuan cuti ditolak oleh <b>$acc_by</b>.";
   }
 
   if (isset($status, $status_hrd)) {
     $sql = "UPDATE pengajuan_cuti 
-            SET status='" . mysqli_real_escape_string($conn, $status) . "',
-                status_hrd='" . mysqli_real_escape_string($conn, $status_hrd) . "',
-                acc_hrd_by='" . mysqli_real_escape_string($conn, $acc_by) . "',
+            SET status='$status',
+                status_hrd='$status_hrd',
+                acc_hrd_by='$acc_by',
                 acc_hrd_time=NOW()
-            WHERE id='".mysqli_real_escape_string($conn,$id)."'";
+            WHERE id='$id'";
     $update = mysqli_query($conn, $sql);
 
     if (!$update) {
+      $_SESSION['flash_type'] = "error";
       $_SESSION['flash_message'] = "❌ Gagal update status HRD: " . mysqli_error($conn);
     } else {
       if (!isset($_SESSION['flash_message'])) {
+        $_SESSION['flash_type'] = "success";
         $_SESSION['flash_message'] = "✅ Pengajuan cuti diperbarui menjadi <b>$status</b> oleh <b>$acc_by</b>.";
       }
     }
@@ -131,7 +131,7 @@ $sqlPengajuan = "
   GROUP BY p.id
   ORDER BY p.id DESC
 ";
-$dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " . mysqli_error($conn));
+$dataPengajuan = mysqli_query($conn, $sqlPengajuan);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -146,10 +146,22 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
     .cuti-table { font-size: 13px; white-space: nowrap; }
     .cuti-table th, .cuti-table td { padding: 6px 10px; vertical-align: middle; }
     .flash-center {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-      z-index: 1050; min-width: 320px; max-width: 90%; text-align: center;
-      padding: 15px; border-radius: 8px; font-weight: 500;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 2000; min-width: 340px; text-align: center;
+      padding: 20px 25px; border-radius: 10px; font-weight: 500;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+      animation: fadeInOut 4s ease forwards;
+    }
+    .flash-center i {
+      font-size: 30px; margin-bottom: 8px;
+    }
+    .flash-success { background-color: #28a745; color: #fff; }
+    .flash-error { background-color: #dc3545; color: #fff; }
+    .flash-warning { background-color: #ffc107; color: #212529; }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translate(-50%, -60%); }
+      10%, 90% { opacity: 1; transform: translate(-50%, -50%); }
+      100% { opacity: 0; transform: translate(-50%, -40%); }
     }
   </style>
 </head>
@@ -163,20 +175,26 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
       <section class="section">
         <div class="section-body">
 
+          <!-- === Flash Message Tengah Layar === -->
           <?php if (isset($_SESSION['flash_message'])): ?>
-            <div class="alert alert-info flash-center" id="flashMsg">
+            <?php
+              $flashType = $_SESSION['flash_type'] ?? 'info';
+              $icon = $flashType === 'success' ? 'fa-check-circle' :
+                      ($flashType === 'error' ? 'fa-times-circle' : 'fa-info-circle');
+            ?>
+            <div class="flash-center flash-<?= htmlspecialchars($flashType) ?>" id="flashMsg">
+              <i class="fas <?= $icon ?>"></i><br>
               <?= $_SESSION['flash_message'] ?>
             </div>
-            <?php unset($_SESSION['flash_message']); ?>
+            <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
           <?php endif; ?>
 
           <div class="card">
             <div class="card-header">
-              <h4 class="mb-0">Persetujuan Cuti (HRD)</h4>
+              <h4 class="mb-0"><i class="fas fa-user-check"></i> Persetujuan Cuti (HRD)</h4>
             </div>
 
             <div class="card-body">
-              <!-- Data Pengajuan -->
               <div class="table-responsive">
                 <table class="table table-striped table-bordered cuti-table">
                   <thead class="thead-dark">
@@ -253,11 +271,8 @@ $dataPengajuan = mysqli_query($conn, $sqlPengajuan) or die("Error ambil data: " 
 <script src="assets/js/custom.js"></script>
 <script>
   $(document).ready(function() {
-    setTimeout(function() {
-      $("#flashMsg").fadeOut("slow");
-    }, 3500);
+    setTimeout(() => $("#flashMsg").fadeOut("slow"), 4000);
   });
 </script>
-
 </body>
 </html>

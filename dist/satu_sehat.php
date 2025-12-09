@@ -69,6 +69,40 @@ if ($filter_endpoint) $where[] = "endpoint = '$filter_endpoint'";
 $where_sql = count($where) > 0 ? 'WHERE ' . implode(' AND ', $where) : '';
 
 $data_query = mysqli_query($conn, "SELECT * FROM satu_sehat $where_sql ORDER BY tahun DESC, bulan DESC, endpoint ASC");
+
+// === Data untuk grafik ===
+if ($filter_bulan && $filter_tahun) {
+    // Jika filter bulan & tahun aktif → tampilkan semua endpoint
+    $chart_query = mysqli_query($conn, "
+        SELECT endpoint, jumlah 
+        FROM satu_sehat 
+        WHERE bulan = $filter_bulan AND tahun = $filter_tahun 
+        ORDER BY endpoint ASC
+    ");
+    $chart_labels = [];
+    $chart_values = [];
+    while ($row = mysqli_fetch_assoc($chart_query)) {
+        $chart_labels[] = $row['endpoint'];
+        $chart_values[] = (int)$row['jumlah'];
+    }
+} else {
+    // Jika tidak ada filter → tampilkan total per bulan
+    $chart_query = mysqli_query($conn, "
+        SELECT tahun, bulan, SUM(jumlah) AS total 
+        FROM satu_sehat 
+        GROUP BY tahun, bulan 
+        ORDER BY tahun ASC, bulan ASC
+    ");
+    $chart_labels = [];
+    $chart_values = [];
+    while ($row = mysqli_fetch_assoc($chart_query)) {
+        $chart_labels[] = $bulan_list[$row['bulan']] . ' ' . $row['tahun'];
+        $chart_values[] = (int)$row['total'];
+    }
+}
+
+// === Tentukan tab aktif ===
+$active_tab = (isset($_GET['bulan']) || isset($_GET['tahun']) || isset($_GET['endpoint'])) ? 'data' : 'input';
 ?>
 
 <!DOCTYPE html>
@@ -85,6 +119,17 @@ $data_query = mysqli_query($conn, "SELECT * FROM satu_sehat $where_sql ORDER BY 
 .table thead th { background-color: #000 !important; color: #fff !important; }
 #notif-toast { position: fixed; top: 20px; right: 20px; z-index: 9999; display: none; }
 </style>
+
+<style>
+.modal-xl {
+  max-width: 95% !important; /* agar modal hampir full layar */
+}
+#grafikSatuSehat {
+  width: 90% !important;
+  height: 90% !important;
+}
+</style>
+
 </head>
 <body>
 <div id="app">
@@ -101,14 +146,22 @@ $data_query = mysqli_query($conn, "SELECT * FROM satu_sehat $where_sql ORDER BY 
 <div class="card-body">
 
 <ul class="nav nav-tabs" id="satuSehatTab" role="tablist">
-  <li class="nav-item"><a class="nav-link active" id="input-tab" data-toggle="tab" href="#input" role="tab"><i class="fas fa-edit"></i> Input Data</a></li>
-  <li class="nav-item"><a class="nav-link" id="data-tab" data-toggle="tab" href="#data" role="tab"><i class="fas fa-table"></i> Data Tersimpan</a></li>
+  <li class="nav-item">
+    <a class="nav-link <?= $active_tab=='input'?'active':'' ?>" id="input-tab" data-toggle="tab" href="#input" role="tab">
+      <i class="fas fa-edit"></i> Input Data
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link <?= $active_tab=='data'?'active':'' ?>" id="data-tab" data-toggle="tab" href="#data" role="tab">
+      <i class="fas fa-table"></i> Data Tersimpan
+    </a>
+  </li>
 </ul>
 
 <div class="tab-content mt-4">
 
 <!-- Tab Input -->
-<div class="tab-pane fade show active" id="input" role="tabpanel">
+<div class="tab-pane fade <?= $active_tab=='input'?'show active':'' ?>" id="input" role="tabpanel">
 <?php if ($notif): ?><div class="alert alert-danger"><?= $notif ?></div><?php endif; ?>
 <?php if (isset($_SESSION['flash_message'])): ?>
 <div id="notif-toast" class="alert alert-success text-center">
@@ -161,7 +214,7 @@ $data_query = mysqli_query($conn, "SELECT * FROM satu_sehat $where_sql ORDER BY 
 </div>
 
 <!-- Tab Data -->
-<div class="tab-pane fade" id="data" role="tabpanel">
+<div class="tab-pane fade <?= $active_tab=='data'?'show active':'' ?>" id="data" role="tabpanel">
 <form class="form-inline mb-3" method="GET">
   <label class="mr-2"><i class="fas fa-calendar-alt"></i> Bulan:</label>
   <select name="bulan" class="form-control mr-2">
@@ -187,7 +240,12 @@ $data_query = mysqli_query($conn, "SELECT * FROM satu_sehat $where_sql ORDER BY 
     <?php endforeach; ?>
   </select>
 
-  <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button>
+  <button type="submit" class="btn btn-primary mr-2"><i class="fas fa-filter"></i> Filter</button>
+  
+  <!-- Tombol Grafik -->
+  <button type="button" class="btn btn-info" data-toggle="modal" data-target="#modalGrafik">
+    <i class="fas fa-chart-line"></i> Tampilkan Grafik
+  </button>
 </form>
 
 <div class="table-responsive">
@@ -228,21 +286,73 @@ $data_query = mysqli_query($conn, "SELECT * FROM satu_sehat $where_sql ORDER BY 
 </div>
 </div>
 
- <script src="assets/modules/jquery.min.js"></script>
+<!-- Modal Grafik -->
+<div class="modal fade" id="modalGrafik" tabindex="-1" role="dialog" aria-labelledby="modalGrafikLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document"> <!-- ubah dari modal-lg ke modal-xl -->
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title"><i class="fas fa-chart-line"></i> Grafik Pengiriman SATUSEHAT</h5>
+        <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <div class="modal-body" style="height: 80vh;"> <!-- tambahkan tinggi dinamis -->
+        <canvas id="grafikSatuSehat" style="width:100%; height:100%;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script src="assets/modules/jquery.min.js"></script>
 <script src="assets/modules/popper.js"></script>
 <script src="assets/modules/bootstrap/js/bootstrap.min.js"></script>
 <script src="assets/modules/nicescroll/jquery.nicescroll.min.js"></script>
 <script src="assets/modules/moment.min.js"></script>
 <script src="assets/js/stisla.js"></script>
 <script src="assets/js/scripts.js"></script>
-<script src="assets/js/custom.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 $(function(){
   var toast = $('#notif-toast');
   if(toast.length){
     toast.fadeIn(300).delay(2000).fadeOut(500);
   }
+
+  // === Grafik Chart.js ===
+  var ctx = document.getElementById('grafikSatuSehat').getContext('2d');
+  var chartLabels = <?= json_encode($chart_labels) ?>;
+  var chartValues = <?= json_encode($chart_values) ?>;
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets: [{
+        label: 'Jumlah Data',
+        data: chartValues,
+        borderColor: '#17a2b8',
+        backgroundColor: 'rgba(23,162,184,0.2)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#17a2b8'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: true, position: 'bottom' },
+        title: {
+          display: true,
+          text: 'Grafik Pengiriman SATUSEHAT'
+        }
+      },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: 'Jumlah' } },
+        x: { title: { display: true, text: 'Endpoint / Bulan' } }
+      }
+    }
+  });
 });
 </script>
 
